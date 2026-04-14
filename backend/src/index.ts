@@ -6,6 +6,9 @@ import { AppDataSource } from './config/database';
 
 dotenv.config();
 
+// Routes
+import authRoutes from './routes/authRoutes';
+
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
 
@@ -14,7 +17,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
+app.use('/api/auth', authRoutes);
+
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to Express TypeORM API' });
 });
