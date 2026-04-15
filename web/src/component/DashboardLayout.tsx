@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   AppBar,
-  Avatar,
   Box,
   Divider,
   Drawer,
@@ -20,9 +19,8 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
-import PaymentsIcon from '@mui/icons-material/Payments';
+import LeaveIcon from '@mui/icons-material/TimeToLeave';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -38,9 +36,8 @@ const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { key: 'user-management', label: 'User Management', icon: <PeopleIcon /> },
   { key: 'tree-management', label: 'User Tree', icon: <AccountTreeIcon /> },
-  { key: 'reimburse', label: 'Reimburse', icon: <ReceiptLongIcon /> },
   { key: 'attendance', label: 'Attendance', icon: <EventAvailableIcon /> },
-  { key: 'payroll', label: 'Payroll', icon: <PaymentsIcon /> },
+  { key: 'leave', label: 'Leave Management', icon: <LeaveIcon /> },
 ];
 
 export default function DashboardLayout({
