@@ -16,7 +16,6 @@ import {
   Button,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import CloseIcon from '@mui/icons-material/Close';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -24,6 +23,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import PaymentsIcon from '@mui/icons-material/Payments';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -36,7 +36,8 @@ const drawerWidth = 260;
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-  { key: 'users', label: 'Users', icon: <PeopleIcon /> },
+  { key: 'user-management', label: 'User Management', icon: <PeopleIcon /> },
+  { key: 'tree-management', label: 'User Tree', icon: <AccountTreeIcon /> },
   { key: 'reimburse', label: 'Reimburse', icon: <ReceiptLongIcon /> },
   { key: 'attendance', label: 'Attendance', icon: <EventAvailableIcon /> },
   { key: 'payroll', label: 'Payroll', icon: <PaymentsIcon /> },
@@ -44,19 +45,15 @@ const navItems = [
 
 export default function DashboardLayout({
   children,
-  currentPage = 'dashboard',
+  currentPage,
 }: DashboardLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const { logout, userData } = useAuth();
 
   const initials = useMemo(() => {
-    const name = userData?.name || userData?.username || 'Admin';
-    return name
-      .split(' ')
-      .map((s) => s[0]?.toUpperCase())
-      .slice(0, 2)
-      .join('');
+    const name = userData?.name || userData?.username || 'AD';
+    return name.split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
   }, [userData]);
 
   const handleLogout = () => {
@@ -65,28 +62,36 @@ export default function DashboardLayout({
   };
 
   const drawerContent = (
-    <Box sx={{ height: '100%', bgcolor: 'background.paper' }}>
-      <Box sx={{ px: 2.5, py: 2 }}>
-        <Typography variant="h6" fontWeight={700}>
-          CRM Admin
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Management Panel
-        </Typography>
-      </Box>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Divider />
-      <List sx={{ px: 1, py: 1 }}>
+      <List sx={{ flex: 1, px: 1, py: 1 }}>
         {navItems.map((item) => (
           <ListItemButton
             key={item.key}
+            onClick={() => {
+              navigate(`/${item.key}`);
+              setMobileOpen(false);
+            }}
             selected={currentPage === item.key}
-            sx={{ borderRadius: 1.5, mb: 0.5 }}
+            sx={{
+              borderRadius: 1.5,
+              mb: 0.5,
+              '&.Mui-selected': {
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': { bgcolor: 'primary.dark' },
+              },
+            }}
           >
-            <ListItemIcon sx={{ minWidth: 38 }}>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
+            <ListItemIcon sx={{ minWidth: 38, color: 'inherit' }}>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.label} primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
           </ListItemButton>
         ))}
       </List>
+      <Divider />
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="caption" color="text.secondary">Version 1.0.0</Typography>
+      </Box>
     </Box>
   );
 
@@ -97,40 +102,23 @@ export default function DashboardLayout({
         color="inherit"
         elevation={0}
         sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
           borderBottom: '1px solid',
           borderColor: 'divider',
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          ml: { md: `${drawerWidth}px` },
         }}
       >
         <Toolbar sx={{ minHeight: 64 }}>
           <IconButton
             color="inherit"
             edge="start"
-            onClick={() => setMobileOpen((v) => !v)}
-            sx={{ mr: 1, display: { md: 'none' } }}
-            aria-label="Toggle sidebar"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            sx={{ mr: 2, display: { md: 'none' } }}
           >
-            {mobileOpen ? <CloseIcon /> : <MenuIcon />}
+            <MenuIcon />
           </IconButton>
-
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
-            CRM Admin Panel
-          </Typography>
-
-          <IconButton color="inherit" aria-label="Settings">
-            <SettingsIcon />
-          </IconButton>
-
-          <Avatar sx={{ mx: 1.5, width: 34, height: 34 }}>{initials || 'AD'}</Avatar>
-
-          <Button
-            variant="text"
-            color="inherit"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            sx={{ textTransform: 'none' }}
-          >
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>CRM Admin Panel</Typography>
+          <IconButton color="inherit"><SettingsIcon /></IconButton>
+          <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ textTransform: 'none' }}>
             Logout
           </Button>
         </Toolbar>
@@ -143,7 +131,7 @@ export default function DashboardLayout({
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
-          '& .MuiDrawer-paper': { width: drawerWidth },
+          '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box', boxShadow: 'none' },
         }}
       >
         {drawerContent}
@@ -151,16 +139,12 @@ export default function DashboardLayout({
 
       <Drawer
         variant="permanent"
-        open
         sx={{
           display: { xs: 'none', md: 'block' },
-          '& .MuiDrawer-paper': {
-            width: drawerWidth,
-            boxSizing: 'border-box',
-            borderRight: '1px solid',
-            borderColor: 'divider',
-          },
+          width: drawerWidth,
+          '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box', top: 64, height: 'calc(100vh - 64px)', borderRight: '1px solid', borderColor: 'divider' },
         }}
+        open
       >
         {drawerContent}
       </Drawer>
@@ -169,9 +153,10 @@ export default function DashboardLayout({
         component="main"
         sx={{
           flexGrow: 1,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
           mt: '64px',
-          p: 3,
+          ml: { xs: 0, md: 0 }, // Tetap 0 karena drawer permanent menggunakan position default
+          p: { xs: 2, md: 3 },
+          width: '100%',
         }}
       >
         {children}

@@ -49,7 +49,7 @@ const LoginModal: React.FC = () => {
         login(response.token);
         setEmail('');
         setPassword('');
-        navigate('/home', { replace: true });
+        navigate('/dashboard', { replace: true });
       } else {
         throw new Error(response?.message || 'Invalid login credentials');
       }
