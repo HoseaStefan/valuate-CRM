@@ -24,6 +24,9 @@ jest.mock('../controllers/userController', () => ({
   getUserById: jest.fn((req, res) => res.status(200).json({ id: parseInt(req.params.id), email: 'test@example.com' })),
   updateUser: jest.fn((req, res) => res.status(200).json({ id: parseInt(req.params.id), fullName: req.body.fullName || 'Updated Name' })),
   deleteUser: jest.fn((req, res) => res.status(200).json({ message: 'User deleted successfully' })),
+  getManagementTree: jest.fn((req, res) => res.status(200).json([
+    { id: 1, fullName: 'Manager', children: [ { id: 2, fullName: 'Staff', children: [] } ] }
+  ]))
 }));
 
 describe('User Routes with new Sequelize synced schema', () => {
@@ -63,6 +66,13 @@ describe('User Routes with new Sequelize synced schema', () => {
     const response = await request(app).get('/api/users/1');
     expect(response.status).toBe(200);
     expect(response.body.id).toBe(1);
+  });
+
+  it('should get the management tree (GET /api/users/tree)', async () => {
+    const response = await request(app).get('/api/users/tree');
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBeTruthy();
+    expect(response.body[0].children.length).toBe(1);
   });
 
   it('should update user fields (PUT /api/users/:id)', async () => {

@@ -154,3 +154,59 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+// ===== VIEW MANAGEMENT TREE =====
+
+interface UserNode {
+  id: number;
+  fullName: string;
+  email: string;
+  role: string;
+  photoPath: string | null;
+  children: UserNode[];
+}
+
+export const getManagementTree = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const users = await userRepository.find({
+      select: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId']
+    });
+
+    const userMap = new Map<number, UserNode>();
+    const tree: UserNode[] = [];
+
+    // Initialize map
+    users.forEach((u) => {
+      userMap.set(u.id, {
+        id: u.id,
+        fullName: u.fullName,
+        email: u.email,
+        role: u.role,
+        photoPath: u.photoPath,
+        children: []
+      });
+    });
+
+    // Construct hierarchy
+    users.forEach((u) => {
+      if (u.managerId) {
+        const managerNode = userMap.get(u.managerId);
+        if (managerNode) {
+          managerNode.children.push(userMap.get(u.id)!);
+        } else {
+          // If manager doesn't exist, place at root level
+          tree.push(userMap.get(u.id)!);
+        }
+      } else {
+        // No manager means it's a top level node
+        tree.push(userMap.get(u.id)!);
+      }
+    });
+
+    res.json(tree);
+  } catch (error) {
+    console.error('Error getting management tree:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
