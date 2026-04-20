@@ -14,7 +14,8 @@ jest.mock('../middleware/authMiddleware', () => ({
   authMiddleware: (req: any, res: any, next: any) => {
     req.user = { id: 999, role: 'admin' };
     next();
-  }
+  },
+  requireRole: () => (req: any, res: any, next: any) => next()
 }));
 
 jest.mock('../controllers/userController', () => ({
