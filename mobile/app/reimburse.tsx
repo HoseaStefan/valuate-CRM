@@ -39,7 +39,7 @@ function formatIDR(amount: number) {
 export default function ReimburseScreen() {
   const data = useMemo<ReimburseItem[]>(() => {
     const now = new Date();
-    return [
+    const items: ReimburseItem[] = [
       {
         id: 'r-3',
         title: 'Reimburse Transport',
@@ -64,7 +64,10 @@ export default function ReimburseScreen() {
         submittedAt: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 7)),
         status: 'Ditolak',
       },
-    ].sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+    ];
+
+    // 2. Return variabel yang sudah di-sort
+    return items.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
   }, []);
 
   return (

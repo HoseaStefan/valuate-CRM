@@ -74,7 +74,9 @@ export default function LeaveScreen() {
           <IconSymbol name="chevron.left" size={22} color={ValuateColors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cuti</Text>
-        <View style={styles.headerButton} />
+        <TouchableOpacity style={styles.headerButton} onPress={() => router.push('/leave-calendar' as any)}>
+          <IconSymbol name="calendar" size={20} color={ValuateColors.text.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
