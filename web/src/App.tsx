@@ -9,8 +9,8 @@ import ViewUser from './View/ViewUser';
 import EditUser from './View/EditUser';
 import AssignManager from './View/AssignManager';
 import AddSalary from './View/AddSalary';
-// import Reimburse from './View/Reimburse';
-// import Attendance from './View/Attendance';
+import LeaveManagement from './View/LeaveManagement';
+import Attendance from './View/Attendance';
 // import Payroll from './View/Payroll';
 
 function AppContent() {
@@ -26,6 +26,8 @@ function AppContent() {
                     <Route path="/user/:userId/edit" element={<EditUser />} />
                     <Route path="/user/:userId/assign-manager" element={<AssignManager />} />
                     <Route path="/user/:userId/add-salary" element={<AddSalary />} />
+                    <Route path="/leave-management" element={<LeaveManagement />} />
+                    <Route path="/attendance" element={<Attendance />} />
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </div>
