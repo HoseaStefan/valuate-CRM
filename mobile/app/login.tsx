@@ -119,11 +119,11 @@ export default function LoginScreen() {
           {/* Logo Section */}
           <View style={styles.logoSection}>
             <View style={styles.logoContainer}>
-              <ExpoImage
+              {/* <ExpoImage
                 source={require('@/assets/images/valuate.png')}
                 style={styles.logoImage}
                 contentFit="contain"
-              />
+              /> */}
             </View>
           </View>
 
