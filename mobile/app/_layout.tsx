@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { UserProvider } from '@/contexts/UserContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -13,12 +14,12 @@ export const unstable_settings = {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (loading) return;
 
     const inAuthGroup = segments[0] === 'login';
     
@@ -29,9 +30,9 @@ function RootLayoutNav() {
       // Redirect away from login page if authenticated
       router.replace('/(tabs)');
     }
-  }, [user, isLoading, segments]);
+  }, [user, loading, segments]);
 
-  if (isLoading) {
+  if (loading) {
     return null; // Or a simple activity indicator
   }
 
@@ -40,6 +41,12 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="attendance" options={{ headerShown: false }} />
+        <Stack.Screen name="reimburse" options={{ headerShown: false }} />
+        <Stack.Screen name="reimburse-form" options={{ headerShown: false }} />
+        <Stack.Screen name="leave" options={{ headerShown: false }} />
+        <Stack.Screen name="leave-form" options={{ headerShown: false }} />
+        <Stack.Screen name="leave-calendar" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />
@@ -50,7 +57,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <UserProvider>
+        <RootLayoutNav />
+      </UserProvider>
     </AuthProvider>
   );
 }
