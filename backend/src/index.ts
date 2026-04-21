@@ -8,6 +8,10 @@ dotenv.config();
 
 // Routes
 import authRoutes from './routes/authRoutes';
+import userRoutes from './routes/userRoutes';
+import profileRoutes from './routes/profileRoutes';
+import reimbursementRoutes from './routes/reimbursementRoutes';
+import payrollRoutes from './routes/payrollRoutes';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +22,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/reimbursement', reimbursementRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to Express TypeORM API' });
