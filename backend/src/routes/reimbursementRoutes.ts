@@ -4,7 +4,6 @@ import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
 
-// Staff authentication enforced
 router.use(authMiddleware);
 
 // Mobile Staff requesting reimbursement
