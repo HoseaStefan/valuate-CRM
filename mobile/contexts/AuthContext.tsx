@@ -3,29 +3,46 @@ import { authService } from '../services/authService';
 
 type AuthContextType = {
   user: any;
-  isLoading: boolean;
+  isAuthenticated: boolean;
+  loading: boolean;
   login: (username: string, password: string, rememberMe?: boolean) => Promise<boolean>;
+  mockLogin: (username?: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  isLoading: true,
+  isAuthenticated: false,
+  loading: true,
   login: async () => false,
+  mockLogin: async () => {},
   logout: async () => {}
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    authService.getToken().then(token => {
-      if (token) setUser({ token });
-      setIsLoading(false);
-    }).catch(() => {
-      setIsLoading(false);
-    });
+    (async () => {
+      try {
+        const token = await authService.getToken();
+        if (token) {
+          const storedUsername = await authService.getUsername();
+          setUser({
+            token,
+            data: {
+              username: storedUsername || 'staff',
+              fullName: 'Staff',
+              namaLengkap: 'Staff',
+              role: 'staff',
+            },
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const login = async (username: string, password: string, rememberMe: boolean = false) => {
@@ -43,13 +60,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const mockLogin = async (username?: string) => {
+    const mockToken = 'mock-token';
+    await authService.setToken(mockToken);
+
+    setUser({
+      token: mockToken,
+      data: {
+        username: username || 'staff',
+        fullName: 'Staff',
+        namaLengkap: 'Staff',
+        role: 'staff',
+      },
+    });
+  };
+
   const logout = async () => {
     await authService.forceClearAuth();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, mockLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );
