@@ -29,7 +29,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import DashboardLayout from '../component/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
-import AddUserModal from './AddUserModal';
+import AddUserModal from '../modals/AddUserModal';
 
 // Mock data
 const users = [

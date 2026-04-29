@@ -1,7 +1,7 @@
 import DashboardLayout from "../component/DashboardLayout";
 import { Box, Typography, Button, Tabs, Tab, Card, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Stack, Avatar, Chip, Modal, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
-import RequestLeaveModal from "./RequestLeaveModal";
+import RequestLeaveModal from "../modals/RequestLeaveModal";
 
 // Mock data for leave requests
 const dummyLeaveRequests = [

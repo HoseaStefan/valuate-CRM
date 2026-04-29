@@ -1,7 +1,6 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { fetchEndpoint } from '../fetchEndpoint'; // Adjust the import path as necessary
+import React, { createContext, useState, useContext, useEffect, type ReactNode } from 'react';
+import { fetchEndpoint } from '../fetchEndpoint';
 
-// Add user profile info to the context
 interface User {
   id: string;
   username: string;
@@ -14,7 +13,8 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   userData: User | null;
-  login: (user: User) => void;
+  token: string | null;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -22,35 +22,55 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   useEffect(() => {
     try {
+      const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('userData');
-      if (storedUser) {
+
+      if (storedToken && storedUser) {
+        setToken(storedToken);
         setUserData(JSON.parse(storedUser));
         setIsAuthenticated(true);
       }
     } catch (error) {
-      console.error("Failed to parse user data from localStorage", error);
+      console.error("Failed to load auth data from localStorage", error);
+      localStorage.removeItem('token');
       localStorage.removeItem('userData');
     }
   }, []);
 
-  const login = (user: User) => {
-    localStorage.setItem('userData', JSON.stringify(user));
-    setUserData(user);
-    setIsAuthenticated(true);
+  const login = async (username: string, password: string) => {
+    try {
+      const data = await fetchEndpoint('/api/auth/login', 'POST', null, { username, password });
+      if (data && data.token && data.user) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userData', JSON.stringify(data.user));
+        setToken(data.token);
+        setUserData(data.user);
+        setIsAuthenticated(true);
+      } else {
+        throw new Error('Login failed: Invalid data received from server');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      // Re-throw the error to be handled by the calling component (e.g., to show a message)
+      throw error;
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
     localStorage.removeItem('userData');
+    setToken(null);
     setUserData(null);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, userData, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, userData, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
