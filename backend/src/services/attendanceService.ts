@@ -29,3 +29,17 @@ export function verifyQrSignature(providedSignatureBase64: string): boolean {
     return false;
   }
 }
+
+// Generate QR code URL for attendance scanning
+export function generateAttendanceQRCode(): { qrImageUrl: string; payload: any } {
+  const signature = createHashQR();
+  const payload = {
+    signature,
+    timestamp: truncateDatetimeToMinute(),
+  };
+  
+  const qrData = JSON.stringify(payload);
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&color=1e293b`;
+  
+  return { qrImageUrl, payload };
+}

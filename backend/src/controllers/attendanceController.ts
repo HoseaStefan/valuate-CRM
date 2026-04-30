@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { Op } from 'sequelize';
-import { verifyQrSignature } from '../services/attendanceService';
+import { verifyQrSignature, generateAttendanceQRCode } from '../services/attendanceService';
 import { Attendance } from '../models/attendances';
 import { User } from '../models/users';
 import { AuthRequest } from '../middleware/authMiddleware';
@@ -101,6 +101,20 @@ export const updateAttendance = async (
     res.status(200).json(record);
   } catch (error) {
     console.error('Error updating attendance:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Generate QR code for today's attendance
+export const generateQR = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { qrImageUrl, payload } = generateAttendanceQRCode();
+    res.status(200).json({ qrImageUrl, payload });
+  } catch (error) {
+    console.error('Error generating QR:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

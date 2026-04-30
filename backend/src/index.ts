@@ -12,6 +12,7 @@ import userRoutes from './routes/userRoutes';
 import profileRoutes from './routes/profileRoutes';
 import reimbursementRoutes from './routes/reimbursementRoutes';
 import payrollRoutes from './routes/payrollRoutes';
+import attendanceRoutes from './routes/attendanceRoutes';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -27,6 +28,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/reimbursement', reimbursementRoutes);
 app.use('/api/payroll', payrollRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to Express Sequelize API' });

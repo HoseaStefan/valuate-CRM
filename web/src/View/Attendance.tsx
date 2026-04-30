@@ -1,6 +1,7 @@
 import DashboardLayout from "../component/DashboardLayout";
-import { Box, Typography, Button, Tabs, Tab, Card, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Stack, Avatar, Chip, Modal, TextField } from "@mui/material";
+import { Box, Typography, Button, Tabs, Tab, Card, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Stack, Avatar, Chip, Modal, TextField, Alert } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 // Mock data for attendance records
 const dummyAttendance = [
@@ -23,10 +24,14 @@ const style = {
 };
 
 const Attendance = () => {
+  const { token } = useAuth();
   const [tab, setTab] = useState(0);
   const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
+  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   useEffect(() => {
     setAttendanceRecords(dummyAttendance);
@@ -34,6 +39,38 @@ const Attendance = () => {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTab(newValue);
+  };
+
+  const handleGenerateQR = async () => {
+    if (!token) {
+      setQrError('Please login first to generate QR code');
+      return;
+    }
+    
+    setIsGeneratingQR(true);
+    setQrError(null);
+    try {
+      const response = await fetch('http://localhost:3000/api/attendance/generate-qr', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setQrImageUrl(data.qrImageUrl);
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to generate QR code' }));
+        setQrError(errorData.message || 'Failed to generate QR code');
+        console.error('Failed to generate QR code:', response.status);
+      }
+    } catch (error) {
+      setQrError(error instanceof Error ? error.message : 'Error generating QR code');
+      console.error('Error generating QR code:', error);
+    } finally {
+      setIsGeneratingQR(false);
+    }
   };
 
   const handleOpenEditModal = (record: any) => {
@@ -71,7 +108,6 @@ const Attendance = () => {
 
   return (
     <DashboardLayout currentPage="attendance">
-      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" gutterBottom sx={{ mb: 0 }} fontWeight={700}>
             Attendance
@@ -130,14 +166,36 @@ const Attendance = () => {
             <Typography variant="body1" sx={{ mb: 3 }}>
               Generate a unique and time-sensitive QR code for employees to scan for check-in or check-out.
             </Typography>
-            <Button variant="contained" sx={{ mb: 3 }}>Generate Today's QR Code</Button>
+            {qrError && <Alert severity="error" sx={{ mb: 3 }}>{qrError}</Alert>}
+            <Button 
+              variant="contained" 
+              sx={{ mb: 3 }}
+              onClick={handleGenerateQR}
+              disabled={isGeneratingQR || !token}
+            >
+              {isGeneratingQR ? 'Generating...' : "Generate Today's QR Code"}
+            </Button>
             <Box sx={{ border: '1px dashed grey', p: 4, borderRadius: 2, maxWidth: 500, margin: 'auto' }}>
-              <Typography>QR Code Scanner/Display Area</Typography>
-              <p>A camera feed for scanning or the generated QR code would appear here.</p>
+              {qrImageUrl ? (
+                <Box sx={{ textAlign: 'center' }}>
+                  <img 
+                    src={qrImageUrl} 
+                    alt="Generated QR Code" 
+                    style={{ maxWidth: '100%', height: 'auto' }}
+                  />
+                  <Typography variant="body2" sx={{ mt: 2 }}>
+                    Scan this QR code to mark your attendance
+                  </Typography>
+                </Box>
+              ) : (
+                <>
+                  <Typography>QR Code Scanner/Display Area</Typography>
+                  <p>Click the button above to generate today's QR code</p>
+                </>
+              )}
             </Box>
           </Box>
         )}
-      </Box>
       <Modal
         open={isEditModalOpen}
         onClose={handleCloseEditModal}

@@ -89,7 +89,6 @@ const LeaveManagement = () => {
 
   return (
     <DashboardLayout currentPage="leave-management">
-      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', height: '100%' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" gutterBottom sx={{ mb: 0 }} fontWeight={700}>
             Leave Management
@@ -208,7 +207,6 @@ const LeaveManagement = () => {
             </Card>
           </Box>
         )}
-      </Box>
       <RequestLeaveModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}

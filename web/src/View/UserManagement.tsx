@@ -133,8 +133,8 @@ export default function UserManagement() {
             <InputLabel>Role</InputLabel>
             <Select label="Role" defaultValue="">
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="Manager">Manager</MenuItem>
               <MenuItem value="Staff">Staff</MenuItem>
+              <MenuItem value="Admin">Admin</MenuItem>
             </Select>
           </FormControl>
           <Button variant="outlined" sx={{ flexShrink: 0 }}>Reset</Button>
