@@ -11,6 +11,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Find user by email (used as username here)
     const user = await User.findOne({ where: { email: username } });
+    
     if (!user) {
       res.status(401).json({ message: 'Invalid credentials' });
       return;
@@ -25,7 +26,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     // Generate token
     const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
-      expiresIn: '1d',
+      expiresIn: '7d',
     });
 
     res.json({

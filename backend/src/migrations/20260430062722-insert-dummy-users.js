@@ -1,9 +1,14 @@
 'use strict';
 
+const bcrypt = require('bcryptjs');
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
     const now = new Date();
+
+    // hash default password once
+    const hashedPassword = await bcrypt.hash('pass123', 10);
 
     await queryInterface.bulkInsert(
       'users',
@@ -11,8 +16,8 @@ module.exports = {
         // ADMIN (not in manager tree)
         {
           id: 1,
-          email: 'admin@company.com',
-          password: 'hashed_admin_pw',
+          email: 'admin@valuate.com',
+          password: hashedPassword,
           fullName: 'Admin User',
           phoneNumber: '081111111111',
           address: 'Head Office',
@@ -27,8 +32,8 @@ module.exports = {
         // STAFF LEVEL 1 (top manager staff)
         {
           id: 2,
-          email: 'director.staff@company.com',
-          password: 'hashed_pw_2',
+          email: 'dir@valuate.com',
+          password: hashedPassword,
           fullName: 'Director Staff',
           phoneNumber: '081111111112',
           address: 'Jakarta',
@@ -43,8 +48,8 @@ module.exports = {
         // STAFF LEVEL 2 (managers under director)
         {
           id: 3,
-          email: 'manager1@company.com',
-          password: 'hashed_pw_3',
+          email: 'm1@valuate.com',
+          password: hashedPassword,
           fullName: 'Manager One',
           phoneNumber: '081111111113',
           address: 'Jakarta',
@@ -57,8 +62,8 @@ module.exports = {
         },
         {
           id: 4,
-          email: 'manager2@company.com',
-          password: 'hashed_pw_4',
+          email: 'm2@valuate.com',
+          password: hashedPassword,
           fullName: 'Manager Two',
           phoneNumber: '081111111114',
           address: 'Bandung',
@@ -71,8 +76,8 @@ module.exports = {
         },
         {
           id: 5,
-          email: 'manager3@company.com',
-          password: 'hashed_pw_5',
+          email: 'm3@valuate.com',
+          password: hashedPassword,
           fullName: 'Manager Three',
           phoneNumber: '081111111115',
           address: 'Surabaya',
@@ -87,8 +92,8 @@ module.exports = {
         // STAFF LEVEL 3 under manager1
         {
           id: 6,
-          email: 'staff1@company.com',
-          password: 'hashed_pw_6',
+          email: 's01@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff One',
           phoneNumber: '081111111116',
           address: 'Jakarta',
@@ -101,8 +106,8 @@ module.exports = {
         },
         {
           id: 7,
-          email: 'staff2@company.com',
-          password: 'hashed_pw_7',
+          email: 's02@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Two',
           phoneNumber: '081111111117',
           address: 'Jakarta',
@@ -115,8 +120,8 @@ module.exports = {
         },
         {
           id: 8,
-          email: 'staff3@company.com',
-          password: 'hashed_pw_8',
+          email: 's03@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Three',
           phoneNumber: '081111111118',
           address: 'Jakarta',
@@ -129,8 +134,8 @@ module.exports = {
         },
         {
           id: 9,
-          email: 'staff4@company.com',
-          password: 'hashed_pw_9',
+          email: 's04@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Four',
           phoneNumber: '081111111119',
           address: 'Jakarta',
@@ -143,8 +148,8 @@ module.exports = {
         },
         {
           id: 10,
-          email: 'staff5@company.com',
-          password: 'hashed_pw_10',
+          email: 's05@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Five',
           phoneNumber: '081111111120',
           address: 'Jakarta',
@@ -157,8 +162,8 @@ module.exports = {
         },
         {
           id: 11,
-          email: 'staff6@company.com',
-          password: 'hashed_pw_11',
+          email: 's06@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Six',
           phoneNumber: '081111111121',
           address: 'Jakarta',
@@ -173,8 +178,8 @@ module.exports = {
         // STAFF LEVEL 3 under manager2
         {
           id: 12,
-          email: 'staff7@company.com',
-          password: 'hashed_pw_12',
+          email: 's07@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Seven',
           phoneNumber: '081111111122',
           address: 'Bandung',
@@ -187,8 +192,8 @@ module.exports = {
         },
         {
           id: 13,
-          email: 'staff8@company.com',
-          password: 'hashed_pw_13',
+          email: 's08@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Eight',
           phoneNumber: '081111111123',
           address: 'Bandung',
@@ -201,8 +206,8 @@ module.exports = {
         },
         {
           id: 14,
-          email: 'staff9@company.com',
-          password: 'hashed_pw_14',
+          email: 's09@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Nine',
           phoneNumber: '081111111124',
           address: 'Bandung',
@@ -215,8 +220,8 @@ module.exports = {
         },
         {
           id: 15,
-          email: 'staff10@company.com',
-          password: 'hashed_pw_15',
+          email: 's10@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Ten',
           phoneNumber: '081111111125',
           address: 'Bandung',
@@ -229,8 +234,8 @@ module.exports = {
         },
         {
           id: 16,
-          email: 'staff11@company.com',
-          password: 'hashed_pw_16',
+          email: 's11@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Eleven',
           phoneNumber: '081111111126',
           address: 'Bandung',
@@ -243,8 +248,8 @@ module.exports = {
         },
         {
           id: 17,
-          email: 'staff12@company.com',
-          password: 'hashed_pw_17',
+          email: 's12@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Twelve',
           phoneNumber: '081111111127',
           address: 'Bandung',
@@ -259,8 +264,8 @@ module.exports = {
         // STAFF LEVEL 3 under manager3
         {
           id: 18,
-          email: 'staff13@company.com',
-          password: 'hashed_pw_18',
+          email: 's13@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Thirteen',
           phoneNumber: '081111111128',
           address: 'Surabaya',
@@ -273,8 +278,8 @@ module.exports = {
         },
         {
           id: 19,
-          email: 'staff14@company.com',
-          password: 'hashed_pw_19',
+          email: 's14@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Fourteen',
           phoneNumber: '081111111129',
           address: 'Surabaya',
@@ -287,8 +292,8 @@ module.exports = {
         },
         {
           id: 20,
-          email: 'staff15@company.com',
-          password: 'hashed_pw_20',
+          email: 's15@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Fifteen',
           phoneNumber: '081111111130',
           address: 'Surabaya',
@@ -301,8 +306,8 @@ module.exports = {
         },
         {
           id: 21,
-          email: 'staff16@company.com',
-          password: 'hashed_pw_21',
+          email: 's16@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Sixteen',
           phoneNumber: '081111111131',
           address: 'Surabaya',
@@ -317,8 +322,8 @@ module.exports = {
         // Extra staff under manager1 (to make staff total = 20)
         {
           id: 22,
-          email: 'staff17@company.com',
-          password: 'hashed_pw_22',
+          email: 's17@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Seventeen',
           phoneNumber: '081111111132',
           address: 'Jakarta',
@@ -331,8 +336,8 @@ module.exports = {
         },
         {
           id: 23,
-          email: 'staff18@company.com',
-          password: 'hashed_pw_23',
+          email: 's18@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Eighteen',
           phoneNumber: '081111111133',
           address: 'Jakarta',
@@ -345,8 +350,8 @@ module.exports = {
         },
         {
           id: 24,
-          email: 'staff19@company.com',
-          password: 'hashed_pw_24',
+          email: 's19@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Nineteen',
           phoneNumber: '081111111134',
           address: 'Jakarta',
@@ -359,8 +364,8 @@ module.exports = {
         },
         {
           id: 25,
-          email: 'staff20@company.com',
-          password: 'hashed_pw_25',
+          email: 's20@valuate.com',
+          password: hashedPassword,
           fullName: 'Staff Twenty',
           phoneNumber: '081111111135',
           address: 'Jakarta',
@@ -384,7 +389,7 @@ module.exports = {
           6, 7, 8, 9, 10,
           11, 12, 13, 14, 15,
           16, 17, 18, 19, 20,
-          21, 22, 23, 24, 25
+          21, 22, 23, 24, 25,
         ],
       },
     });
