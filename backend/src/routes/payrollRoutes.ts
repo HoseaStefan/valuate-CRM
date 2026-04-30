@@ -1,13 +1,17 @@
 import { Router } from 'express';
-import { addManualAdjustment, calculateMonthlyPayroll, getSalarySlip, updatePayrollStatus } from '../controllers/payrollController';
+import {
+  addManualAdjustment,
+  calculateMonthlyPayroll,
+  getSalarySlip,
+  updatePayrollStatus,
+} from '../controllers/payrollController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 
 const router = Router();
 
-
 router.use(authMiddleware);
 
-// Admin exclusive actions 
+// Admin exclusive actions
 router.post('/adjustments', requireRole(['admin']), addManualAdjustment);
 router.post('/calculate', requireRole(['admin']), calculateMonthlyPayroll);
 

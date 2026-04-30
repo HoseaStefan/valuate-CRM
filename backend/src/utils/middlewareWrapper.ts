@@ -1,13 +1,13 @@
-import { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from 'express';
 
 type ExpressRouteHandler<T> = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => Promise<T> | T;
 
 export function middlewareWrapper<T>(
-  middlewareWrapper: ExpressRouteHandler<T>
+  middlewareWrapper: ExpressRouteHandler<T>,
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {

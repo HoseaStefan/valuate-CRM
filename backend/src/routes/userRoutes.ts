@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { 
-  createUser, 
-  getUsers, 
-  getUserById, 
-  updateUser, 
+import {
+  createUser,
+  getUsers,
+  getUserById,
+  updateUser,
   deleteUser,
-  getManagementTree
+  getManagementTree,
 } from '../controllers/userController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 

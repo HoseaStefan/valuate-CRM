@@ -5,7 +5,11 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authMiddleware = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+): void => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -15,7 +19,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
 
     const token = authHeader.split(' ')[1];
     const secret = process.env.JWT_SECRET || 'secret_key_for_development_only';
-    
+
     const decoded = jwt.verify(token, secret);
     req.user = decoded;
 
@@ -33,7 +37,10 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
 export const requireRole = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json({ message: 'Forbidden: You do not have permission to access this resource' });
+      res.status(403).json({
+        message:
+          'Forbidden: You do not have permission to access this resource',
+      });
       return;
     }
     next();

@@ -5,15 +5,35 @@ import bcrypt from 'bcryptjs';
 
 const userRepository = AppDataSource.getRepository(User);
 
-export const createUser = async (req: Request, res: Response): Promise<void> => {
+export const createUser = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
-    const { 
-      email, password, fullName, phoneNumber, 
-      address, photoPath, role, managerId, baseSalary 
+    const {
+      email,
+      password,
+      fullName,
+      phoneNumber,
+      address,
+      photoPath,
+      role,
+      managerId,
+      baseSalary,
     } = req.body;
 
-    if (!email || !password || !fullName || !phoneNumber || !address || !role || baseSalary === undefined) {
-      res.status(400).json({ message: 'Missing required employee creation fields' });
+    if (
+      !email ||
+      !password ||
+      !fullName ||
+      !phoneNumber ||
+      !address ||
+      !role ||
+      baseSalary === undefined
+    ) {
+      res
+        .status(400)
+        .json({ message: 'Missing required employee creation fields' });
       return;
     }
 
@@ -36,7 +56,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
       photoPath: photoPath || null,
       role: role as UserRole,
       managerId: managerId || null,
-      baseSalary
+      baseSalary,
     });
 
     await userRepository.save(newUser);
@@ -52,7 +72,19 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
     const users = await userRepository.find({
-      select: ['id', 'email', 'fullName', 'phoneNumber', 'address', 'photoPath', 'role', 'managerId', 'baseSalary', 'createdAt', 'updatedAt']
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'phoneNumber',
+        'address',
+        'photoPath',
+        'role',
+        'managerId',
+        'baseSalary',
+        'createdAt',
+        'updatedAt',
+      ],
     });
     res.json(users);
   } catch (error) {
@@ -61,10 +93,13 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const getUserById = async (req: Request, res: Response): Promise<void> => {
+export const getUserById = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const id = parseInt(req.params.id, 10);
-    
+
     if (isNaN(id)) {
       res.status(400).json({ message: 'Invalid user ID' });
       return;
@@ -72,7 +107,19 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 
     const user = await userRepository.findOne({
       where: { id },
-      select: ['id', 'email', 'fullName', 'phoneNumber', 'address', 'photoPath', 'role', 'managerId', 'baseSalary', 'createdAt', 'updatedAt']
+      select: [
+        'id',
+        'email',
+        'fullName',
+        'phoneNumber',
+        'address',
+        'photoPath',
+        'role',
+        'managerId',
+        'baseSalary',
+        'createdAt',
+        'updatedAt',
+      ],
     });
 
     if (!user) {
@@ -87,18 +134,28 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-export const updateUser = async (req: Request, res: Response): Promise<void> => {
+export const updateUser = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const id = parseInt(req.params.id, 10);
-    
+
     if (isNaN(id)) {
       res.status(400).json({ message: 'Invalid user ID' });
       return;
     }
 
-    const { 
-      email, password, fullName, phoneNumber, 
-      address, photoPath, role, managerId, baseSalary 
+    const {
+      email,
+      password,
+      fullName,
+      phoneNumber,
+      address,
+      photoPath,
+      role,
+      managerId,
+      baseSalary,
     } = req.body;
 
     const user = await userRepository.findOne({ where: { id } });
@@ -115,7 +172,7 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
     if (role) user.role = role as UserRole;
     if (managerId !== undefined) user.managerId = managerId;
     if (baseSalary !== undefined) user.baseSalary = baseSalary;
-    
+
     if (password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
@@ -131,10 +188,13 @@ export const updateUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-export const deleteUser = async (req: Request, res: Response): Promise<void> => {
+export const deleteUser = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const id = parseInt(req.params.id, 10);
-    
+
     if (isNaN(id)) {
       res.status(400).json({ message: 'Invalid user ID' });
       return;
@@ -155,7 +215,6 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-
 // ===== VIEW MANAGEMENT TREE =====
 
 interface UserNode {
@@ -167,10 +226,13 @@ interface UserNode {
   children: UserNode[];
 }
 
-export const getManagementTree = async (req: Request, res: Response): Promise<void> => {
+export const getManagementTree = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
   try {
     const users = await userRepository.find({
-      select: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId']
+      select: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId'],
     });
 
     const userMap = new Map<number, UserNode>();
@@ -184,7 +246,7 @@ export const getManagementTree = async (req: Request, res: Response): Promise<vo
         email: u.email,
         role: u.role,
         photoPath: u.photoPath,
-        children: []
+        children: [],
       });
     });
 
