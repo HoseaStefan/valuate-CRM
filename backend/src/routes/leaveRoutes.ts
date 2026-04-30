@@ -1,5 +1,10 @@
 import { Router } from 'express';
-import { requestLeave, leaveApproval, calendarView, editRequestLeave } from '../controllers/leaveController';
+import {
+  requestLeave,
+  leaveApproval,
+  calendarView,
+  editRequestLeave,
+} from '../controllers/leaveController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 
 const router = Router();

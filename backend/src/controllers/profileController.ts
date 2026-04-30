@@ -5,11 +5,13 @@ import { AuthRequest } from '../middleware/authMiddleware';
 
 const userRepository = AppDataSource.getRepository(User);
 
-export const updateSelfProfile = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateSelfProfile = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-
     const userId = req.user?.id;
-    
+
     if (!userId) {
       res.status(401).json({ message: 'Unauthorized access' });
       return;

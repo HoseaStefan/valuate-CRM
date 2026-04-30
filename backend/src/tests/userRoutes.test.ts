@@ -15,18 +15,43 @@ jest.mock('../middleware/authMiddleware', () => ({
     req.user = { id: 999, role: 'admin' };
     next();
   },
-  requireRole: () => (req: any, res: any, next: any) => next()
+  requireRole: () => (req: any, res: any, next: any) => next(),
 }));
 
 jest.mock('../controllers/userController', () => ({
-  createUser: jest.fn((req, res) => res.status(201).json({ id: 1, email: req.body.email, fullName: req.body.fullName })),
-  getUsers: jest.fn((req, res) => res.status(200).json([{ id: 1, email: 'test@example.com', fullName: 'Test Name' }])),
-  getUserById: jest.fn((req, res) => res.status(200).json({ id: parseInt(req.params.id), email: 'test@example.com' })),
-  updateUser: jest.fn((req, res) => res.status(200).json({ id: parseInt(req.params.id), fullName: req.body.fullName || 'Updated Name' })),
-  deleteUser: jest.fn((req, res) => res.status(200).json({ message: 'User deleted successfully' })),
-  getManagementTree: jest.fn((req, res) => res.status(200).json([
-    { id: 1, fullName: 'Manager', children: [ { id: 2, fullName: 'Staff', children: [] } ] }
-  ]))
+  createUser: jest.fn((req, res) =>
+    res
+      .status(201)
+      .json({ id: 1, email: req.body.email, fullName: req.body.fullName }),
+  ),
+  getUsers: jest.fn((req, res) =>
+    res
+      .status(200)
+      .json([{ id: 1, email: 'test@example.com', fullName: 'Test Name' }]),
+  ),
+  getUserById: jest.fn((req, res) =>
+    res
+      .status(200)
+      .json({ id: parseInt(req.params.id), email: 'test@example.com' }),
+  ),
+  updateUser: jest.fn((req, res) =>
+    res.status(200).json({
+      id: parseInt(req.params.id),
+      fullName: req.body.fullName || 'Updated Name',
+    }),
+  ),
+  deleteUser: jest.fn((req, res) =>
+    res.status(200).json({ message: 'User deleted successfully' }),
+  ),
+  getManagementTree: jest.fn((req, res) =>
+    res.status(200).json([
+      {
+        id: 1,
+        fullName: 'Manager',
+        children: [{ id: 2, fullName: 'Staff', children: [] }],
+      },
+    ]),
+  ),
 }));
 
 describe('User Routes with new Sequelize synced schema', () => {
@@ -34,20 +59,18 @@ describe('User Routes with new Sequelize synced schema', () => {
     jest.clearAllMocks();
   });
 
-  const payload = { 
-    email: 'new@example.com', 
-    fullName: 'New User', 
+  const payload = {
+    email: 'new@example.com',
+    fullName: 'New User',
     password: 'password123',
     phoneNumber: '0812345678',
     address: 'Jl. Merdeka',
     role: 'staff',
-    baseSalary: 5000000
+    baseSalary: 5000000,
   };
 
   it('should create a new user (POST /api/users)', async () => {
-    const response = await request(app)
-      .post('/api/users')
-      .send(payload);
+    const response = await request(app).post('/api/users').send(payload);
 
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id', 1);
@@ -56,7 +79,7 @@ describe('User Routes with new Sequelize synced schema', () => {
 
   it('should get all users (GET /api/users)', async () => {
     const response = await request(app).get('/api/users');
-    
+
     expect(response.status).toBe(200);
     expect(response.body.length).toBe(1);
     expect(response.body[0].fullName).toBe('Test Name');
@@ -79,7 +102,7 @@ describe('User Routes with new Sequelize synced schema', () => {
     const response = await request(app)
       .put('/api/users/1')
       .send({ fullName: 'Updated Name' });
-    
+
     expect(response.status).toBe(200);
     expect(response.body.fullName).toBe('Updated Name');
   });

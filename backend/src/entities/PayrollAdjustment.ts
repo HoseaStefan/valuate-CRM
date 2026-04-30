@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { User } from './User';
 
 @Entity('payroll_adjustments')
@@ -16,13 +24,30 @@ export class PayrollAdjustment {
   @Column({ type: 'varchar', nullable: false })
   title: string;
 
-  @Column({ type: 'enum', enum: ['bonus', 'deduction', 'damage', 'lateFine', 'reimbursement', 'others'], nullable: false })
+  @Column({
+    type: 'enum',
+    enum: [
+      'bonus',
+      'deduction',
+      'damage',
+      'lateFine',
+      'reimbursement',
+      'others',
+    ],
+    nullable: false,
+  })
   type: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: false, transformer: {
-    to: (value: number) => value,
-    from: (value: string) => parseFloat(value)
-  }})
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   amount: number;
 
   @Column({ type: 'text', nullable: true })
@@ -31,7 +56,11 @@ export class PayrollAdjustment {
   @Column({ type: 'varchar', nullable: true })
   proofPath: string | null;
 
-  @Column({ type: 'enum', enum: ['pending', 'approved', 'rejected'], default: 'pending' })
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
+  })
   status: string;
 
   @Column({ type: 'text', nullable: true })

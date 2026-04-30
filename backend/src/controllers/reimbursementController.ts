@@ -7,14 +7,19 @@ import { AuthRequest } from '../middleware/authMiddleware';
 const adjustmentRepository = AppDataSource.getRepository(PayrollAdjustment);
 const userRepository = AppDataSource.getRepository(User);
 
-export const createReimbursement = async (req: AuthRequest, res: Response): Promise<void> => {
+export const createReimbursement = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const userId = req.user?.id;
     const { title, amount, description, proofPath } = req.body;
 
     // Validate inputs
     if (!title || typeof amount !== 'number' || Math.abs(amount) <= 0) {
-      res.status(400).json({ message: 'Title and a valid positive mathematical amount are required' });
+      res.status(400).json({
+        message: 'Title and a valid positive mathematical amount are required',
+      });
       return;
     }
 
@@ -31,7 +36,7 @@ export const createReimbursement = async (req: AuthRequest, res: Response): Prom
       amount: Math.abs(amount),
       description: description || null,
       proofPath: proofPath,
-      status: 'pending'
+      status: 'pending',
     });
 
     await adjustmentRepository.save(newReimbursement);
@@ -42,7 +47,10 @@ export const createReimbursement = async (req: AuthRequest, res: Response): Prom
   }
 };
 
-export const updateReimbursementApproval = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateReimbursementApproval = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const reviewerId = req.user?.id;
     const reviewerRole = req.user?.role;
@@ -55,25 +63,41 @@ export const updateReimbursementApproval = async (req: AuthRequest, res: Respons
     }
 
     if (!['approved', 'rejected'].includes(status)) {
-      res.status(400).json({ message: 'Status must be tightly set to either approved or rejected' });
+      res.status(400).json({
+        message: 'Status must be tightly set to either approved or rejected',
+      });
       return;
     }
 
     // Rejection Logic
-    if (status === 'rejected' && (!rejectionReason || String(rejectionReason).trim() === '')) {
-      res.status(400).json({ message: 'Rejection reason is strictly required when declining a reimbursement request' });
+    if (
+      status === 'rejected' &&
+      (!rejectionReason || String(rejectionReason).trim() === '')
+    ) {
+      res.status(400).json({
+        message:
+          'Rejection reason is strictly required when declining a reimbursement request',
+      });
       return;
     }
 
-    const reimbursement = await adjustmentRepository.findOne({ where: { id, type: 'reimbursement' }, relations: ['user'] });
+    const reimbursement = await adjustmentRepository.findOne({
+      where: { id, type: 'reimbursement' },
+      relations: ['user'],
+    });
 
     if (!reimbursement) {
-      res.status(404).json({ message: 'Reimbursement request not found in database records' });
+      res.status(404).json({
+        message: 'Reimbursement request not found in database records',
+      });
       return;
     }
 
     if (reimbursement.userId === reviewerId) {
-      res.status(403).json({ message: 'Forbidden: Security mechanism preventing users from approving or rejecting their own personal reimbursement requests' });
+      res.status(403).json({
+        message:
+          'Forbidden: Security mechanism preventing users from approving or rejecting their own personal reimbursement requests',
+      });
       return;
     }
 
@@ -88,13 +112,18 @@ export const updateReimbursementApproval = async (req: AuthRequest, res: Respons
           isSuperior = true;
           break;
         }
-        const superUser = await userRepository.findOne({ where: { id: currentCheckUserId } });
+        const superUser = await userRepository.findOne({
+          where: { id: currentCheckUserId },
+        });
         if (!superUser) break;
         currentCheckUserId = superUser.managerId;
       }
 
       if (!isSuperior) {
-        res.status(403).json({ message: 'Forbidden: You only have permission to review reimbursements from your direct or downstream subordinates' });
+        res.status(403).json({
+          message:
+            'Forbidden: You only have permission to review reimbursements from your direct or downstream subordinates',
+        });
         return;
       }
     }
@@ -112,11 +141,16 @@ export const updateReimbursementApproval = async (req: AuthRequest, res: Respons
     res.json(reimbursement);
   } catch (error) {
     console.error('Error securely updating reimbursement approval:', error);
-    res.status(500).json({ message: 'Internal server error while processing financial state changes' });
+    res.status(500).json({
+      message: 'Internal server error while processing financial state changes',
+    });
   }
 };
 
-export const getReimbursementRequests = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getReimbursementRequests = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const reviewerId = req.user?.id;
     const reviewerRole = req.user?.role;
@@ -124,11 +158,12 @@ export const getReimbursementRequests = async (req: AuthRequest, res: Response):
 
     let activeSubordinateIds: number[] = [];
 
-
     if (reviewerRole !== 'admin') {
       const allSubordinates = new Set<number>();
 
-      let currentLevel = await userRepository.find({ where: { managerId: reviewerId } });
+      let currentLevel = await userRepository.find({
+        where: { managerId: reviewerId },
+      });
 
       while (currentLevel.length > 0) {
         const nextLevelIds: number[] = [];
@@ -138,7 +173,9 @@ export const getReimbursementRequests = async (req: AuthRequest, res: Response):
         }
 
         const nextLevelQueries = await Promise.all(
-          nextLevelIds.map(managerId => userRepository.find({ where: { managerId } }))
+          nextLevelIds.map((managerId) =>
+            userRepository.find({ where: { managerId } }),
+          ),
         );
 
         currentLevel = nextLevelQueries.flat();
@@ -152,13 +189,16 @@ export const getReimbursementRequests = async (req: AuthRequest, res: Response):
       activeSubordinateIds = Array.from(allSubordinates);
     }
 
-    const query = adjustmentRepository.createQueryBuilder('adj')
+    const query = adjustmentRepository
+      .createQueryBuilder('adj')
       .leftJoinAndSelect('adj.user', 'user')
       .where('adj.type = :type', { type: 'reimbursement' });
 
     // Restrict view scope if they are a manager
     if (reviewerRole !== 'admin') {
-      query.andWhere('adj.userId IN (:...subordinateIds)', { subordinateIds: activeSubordinateIds });
+      query.andWhere('adj.userId IN (:...subordinateIds)', {
+        subordinateIds: activeSubordinateIds,
+      });
     }
 
     if (status) {
@@ -167,11 +207,15 @@ export const getReimbursementRequests = async (req: AuthRequest, res: Response):
 
     if (startDate) {
       // Convert string to Date
-      query.andWhere('adj.createdAt >= :startDate', { startDate: new Date(startDate as string) });
+      query.andWhere('adj.createdAt >= :startDate', {
+        startDate: new Date(startDate as string),
+      });
     }
 
     if (endDate) {
-      query.andWhere('adj.createdAt <= :endDate', { endDate: new Date(endDate as string) });
+      query.andWhere('adj.createdAt <= :endDate', {
+        endDate: new Date(endDate as string),
+      });
     }
 
     // Sort by newest requests first
@@ -180,7 +224,7 @@ export const getReimbursementRequests = async (req: AuthRequest, res: Response):
     const requests = await query.getMany();
 
     // Sanitize user passwords
-    const sanitizedRequests = requests.map(reqData => {
+    const sanitizedRequests = requests.map((reqData) => {
       if (reqData.user) {
         const sanitizedUser = { ...reqData.user };
         delete (sanitizedUser as any).password;

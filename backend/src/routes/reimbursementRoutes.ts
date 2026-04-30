@@ -1,5 +1,9 @@
 import { Router } from 'express';
-import { createReimbursement, updateReimbursementApproval, getReimbursementRequests } from '../controllers/reimbursementController';
+import {
+  createReimbursement,
+  updateReimbursementApproval,
+  getReimbursementRequests,
+} from '../controllers/reimbursementController';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
