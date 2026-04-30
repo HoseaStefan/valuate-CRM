@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -14,35 +14,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
-import { authService } from '@/services/authService';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [forgotPasswordVisible, setForgotPasswordVisible] = useState(false);
 
-  const { mockLogin } = useAuth();
-
-  useEffect(() => {
-    initializeAuth();
-  }, []);
-
-  const initializeAuth = async () => {
-    try {
-      const remember = await authService.getRememberMe();
-      const storedUsername = await authService.getUsername();
-
-      setRememberMe(remember);
-      if (remember && storedUsername) {
-        setUsername(storedUsername);
-      }
-    } catch (error) {
-      // ignore
-    }
-  };
+  const { login, loginError } = useAuth();
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -53,9 +33,13 @@ export default function LoginScreen() {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      await authService.setRememberMe(rememberMe, username);
-      await mockLogin(username);
-      // Root layout will redirect to /(tabs) once authenticated
+      const success = await login(username, password);
+      if (!success) {
+        Alert.alert('Login Failed', loginError || 'Invalid credentials. Please try again.');
+      }
+      // On success, navigation will be handled by the AuthContext (root layout will redirect)
+    } catch (error: any) {
+      Alert.alert('Login Error', error.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }
@@ -108,18 +92,9 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            <View style={styles.optionsRow}>
-              <TouchableOpacity style={styles.rememberMeContainer} onPress={() => setRememberMe(!rememberMe)}>
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                  {rememberMe && <IconSymbol name="checkmark" size={14} color={ValuateColors.primary} />}
-                </View>
-                <Text style={styles.rememberMeText}>Remember me</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity onPress={() => setForgotPasswordVisible(true)}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.forgotPasswordButton} onPress={() => setForgotPasswordVisible(true)}>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
@@ -210,42 +185,15 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 4,
   },
-  optionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  forgotPasswordButton: {
     marginBottom: 24,
-    marginTop: 8,
-  },
-  rememberMeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: ValuateColors.text.light + '60',
-    marginRight: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  checkboxChecked: {
-    backgroundColor: 'white',
-    borderColor: ValuateColors.primary,
-  },
-  rememberMeText: {
-    fontSize: 14,
-    color: ValuateColors.text.secondary,
-    fontWeight: '500',
+    marginTop: 12,
   },
   forgotPasswordText: {
     fontSize: 14,
     color: ValuateColors.primary,
     fontWeight: '600',
+    textAlign: 'right',
   },
   loginButton: {
     backgroundColor: ValuateColors.primary,
