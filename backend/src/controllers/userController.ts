@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { User, UserRole } from '../entities/User';
+import { User } from '../models/users';
 import bcrypt from 'bcryptjs';
-
-const userRepository = AppDataSource.getRepository(User);
 
 export const createUser = async (
   req: Request,
@@ -37,7 +34,7 @@ export const createUser = async (
       return;
     }
 
-    const existingUser = await userRepository.findOne({ where: { email } });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       res.status(409).json({ message: 'User with this email already exists' });
       return;
@@ -47,21 +44,19 @@ export const createUser = async (
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const newUser = userRepository.create({
+    const newUser = await User.create({
       email,
       password: hashedPassword,
       fullName,
       phoneNumber,
       address,
       photoPath: photoPath || null,
-      role: role as UserRole,
+      role,
       managerId: managerId || null,
       baseSalary,
     });
 
-    await userRepository.save(newUser);
-
-    const { password: _, ...userWithoutPassword } = newUser;
+    const { password: _, ...userWithoutPassword } = newUser.toJSON();
     res.status(201).json(userWithoutPassword);
   } catch (error) {
     console.error('Error creating user:', error);
@@ -71,8 +66,8 @@ export const createUser = async (
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
-    const users = await userRepository.find({
-      select: [
+    const users = await User.findAll({
+      attributes: [
         'id',
         'email',
         'fullName',
@@ -105,18 +100,19 @@ export const getUserById = async (
       return;
     }
 
-    const user = await userRepository.findOne({
+    const user = await User.findOne({
       where: { id },
-      select: [
+      attributes: [
         'id',
         'email',
-        'fullName',
-        'phoneNumber',
-        'address',
-        'photoPath',
+        'username',
+        'namaLengkap',
+        'nomorTelepon',
+        'alamat',
+        'fotoPath',
         'role',
         'managerId',
-        'baseSalary',
+        'gajiPokok',
         'createdAt',
         'updatedAt',
       ],
@@ -158,7 +154,7 @@ export const updateUser = async (
       baseSalary,
     } = req.body;
 
-    const user = await userRepository.findOne({ where: { id } });
+    const user = await User.findOne({ where: { id } });
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
@@ -169,7 +165,7 @@ export const updateUser = async (
     if (phoneNumber) user.phoneNumber = phoneNumber;
     if (address) user.address = address;
     if (photoPath !== undefined) user.photoPath = photoPath;
-    if (role) user.role = role as UserRole;
+    if (role) user.role = role;
     if (managerId !== undefined) user.managerId = managerId;
     if (baseSalary !== undefined) user.baseSalary = baseSalary;
 
@@ -178,9 +174,9 @@ export const updateUser = async (
       user.password = await bcrypt.hash(password, salt);
     }
 
-    await userRepository.save(user);
+    await user.save();
 
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, ...userWithoutPassword } = user.toJSON();
     res.json(userWithoutPassword);
   } catch (error) {
     console.error('Error updating user:', error);
@@ -200,14 +196,14 @@ export const deleteUser = async (
       return;
     }
 
-    const user = await userRepository.findOne({ where: { id } });
+    const user = await User.findOne({ where: { id } });
 
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
 
-    await userRepository.remove(user);
+    await user.destroy();
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error('Error deleting user:', error);
@@ -231,8 +227,8 @@ export const getManagementTree = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const users = await userRepository.find({
-      select: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId'],
+    const users = await User.findAll({
+      attributes: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId'],
     });
 
     const userMap = new Map<number, UserNode>();

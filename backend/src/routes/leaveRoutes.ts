@@ -4,6 +4,7 @@ import {
   leaveApproval,
   calendarView,
   editRequestLeave,
+  getUserRecentLeaves,
 } from '../controllers/leaveController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 
@@ -11,6 +12,9 @@ const router = Router();
 
 // All leave routes require authentication
 router.use(authMiddleware);
+
+// User's recent leave requests (for dashboard activities)
+router.get('/recent', getUserRecentLeaves);
 
 // Staff: request leave
 router.post('/', requestLeave);

@@ -1,11 +1,8 @@
 import { Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { PayrollAdjustment } from '../entities/PayrollAdjustment';
-import { User } from '../entities/User';
+import { Op } from 'sequelize';
+import { PayrollAdjustment } from '../models/payrollAdjustment';
+import { User } from '../models/users';
 import { AuthRequest } from '../middleware/authMiddleware';
-
-const adjustmentRepository = AppDataSource.getRepository(PayrollAdjustment);
-const userRepository = AppDataSource.getRepository(User);
 
 export const createReimbursement = async (
   req: AuthRequest,
@@ -29,7 +26,7 @@ export const createReimbursement = async (
       return;
     }
 
-    const newReimbursement = adjustmentRepository.create({
+    const newReimbursement = await PayrollAdjustment.create({
       userId,
       title,
       type: 'reimbursement',
@@ -39,7 +36,6 @@ export const createReimbursement = async (
       status: 'pending',
     });
 
-    await adjustmentRepository.save(newReimbursement);
     res.status(201).json(newReimbursement);
   } catch (error) {
     console.error('Error creating reimbursement:', error);
@@ -81,9 +77,9 @@ export const updateReimbursementApproval = async (
       return;
     }
 
-    const reimbursement = await adjustmentRepository.findOne({
+    const reimbursement = await PayrollAdjustment.findOne({
       where: { id, type: 'reimbursement' },
-      relations: ['user'],
+      include: [{ model: User, as: 'user' }],
     });
 
     if (!reimbursement) {
@@ -104,7 +100,7 @@ export const updateReimbursementApproval = async (
     // Role Hierarchy Authorization
     if (reviewerRole !== 'admin') {
       let isSuperior = false;
-      let currentCheckUserId = reimbursement.user.managerId;
+      let currentCheckUserId = (reimbursement as any).user.managerId;
 
       // Check if reviewer acts as their superior
       while (currentCheckUserId) {
@@ -112,7 +108,7 @@ export const updateReimbursementApproval = async (
           isSuperior = true;
           break;
         }
-        const superUser = await userRepository.findOne({
+        const superUser = await User.findOne({
           where: { id: currentCheckUserId },
         });
         if (!superUser) break;
@@ -129,15 +125,15 @@ export const updateReimbursementApproval = async (
     }
 
     reimbursement.status = status;
-    reimbursement.reviewedById = reviewerId;
+    reimbursement.reviewedBy = reviewerId;
 
     if (status === 'rejected') {
-      reimbursement.rejectionReason = rejectionReason;
+      (reimbursement as any).rejectionReason = rejectionReason;
     } else {
-      reimbursement.rejectionReason = null; // Purge old reasons if transitioning
+      (reimbursement as any).rejectionReason = null; // Purge old reasons if transitioning
     }
 
-    await adjustmentRepository.save(reimbursement);
+    await reimbursement.save();
     res.json(reimbursement);
   } catch (error) {
     console.error('Error securely updating reimbursement approval:', error);
@@ -161,7 +157,7 @@ export const getReimbursementRequests = async (
     if (reviewerRole !== 'admin') {
       const allSubordinates = new Set<number>();
 
-      let currentLevel = await userRepository.find({
+      let currentLevel = await User.findAll({
         where: { managerId: reviewerId },
       });
 
@@ -174,7 +170,7 @@ export const getReimbursementRequests = async (
 
         const nextLevelQueries = await Promise.all(
           nextLevelIds.map((managerId) =>
-            userRepository.find({ where: { managerId } }),
+            User.findAll({ where: { managerId } }),
           ),
         );
 
@@ -189,53 +185,82 @@ export const getReimbursementRequests = async (
       activeSubordinateIds = Array.from(allSubordinates);
     }
 
-    const query = adjustmentRepository
-      .createQueryBuilder('adj')
-      .leftJoinAndSelect('adj.user', 'user')
-      .where('adj.type = :type', { type: 'reimbursement' });
+    const whereClause: any = { type: 'reimbursement' };
 
     // Restrict view scope if they are a manager
     if (reviewerRole !== 'admin') {
-      query.andWhere('adj.userId IN (:...subordinateIds)', {
-        subordinateIds: activeSubordinateIds,
-      });
+      whereClause.userId = { [Op.in]: activeSubordinateIds };
     }
 
     if (status) {
-      query.andWhere('adj.status = :status', { status });
+      whereClause.status = status;
     }
 
     if (startDate) {
-      // Convert string to Date
-      query.andWhere('adj.createdAt >= :startDate', {
-        startDate: new Date(startDate as string),
-      });
+      whereClause.createdAt = {
+        ...whereClause.createdAt,
+        [Op.gte]: new Date(startDate as string),
+      };
     }
 
     if (endDate) {
-      query.andWhere('adj.createdAt <= :endDate', {
-        endDate: new Date(endDate as string),
-      });
+      whereClause.createdAt = {
+        ...whereClause.createdAt,
+        [Op.lte]: new Date(endDate as string),
+      };
     }
 
-    // Sort by newest requests first
-    query.orderBy('adj.createdAt', 'DESC');
-
-    const requests = await query.getMany();
+    const requests = await PayrollAdjustment.findAll({
+      where: whereClause,
+      include: [{ model: User, as: 'user' }],
+      order: [['createdAt', 'DESC']],
+    });
 
     // Sanitize user passwords
     const sanitizedRequests = requests.map((reqData) => {
-      if (reqData.user) {
-        const sanitizedUser = { ...reqData.user };
-        delete (sanitizedUser as any).password;
-        reqData.user = sanitizedUser as User;
+      const sanitized = (reqData as any).toJSON();
+      if (sanitized.user) {
+        delete sanitized.user.password;
       }
-      return reqData;
+      return sanitized;
     });
 
     res.status(200).json(sanitizedRequests);
   } catch (error) {
     console.error('Error retrieving reimbursement requests:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// User's recent reimbursements (for dashboard activities)
+export const getUserRecentReimbursements = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    // Fetch reimbursements from past 3 days
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const reimbursements = await PayrollAdjustment.findAll({
+      where: {
+        userId,
+        type: 'reimbursement',
+        createdAt: { [Op.gte]: threeDaysAgo },
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+    });
+
+    res.status(200).json(reimbursements);
+  } catch (error) {
+    console.error('Error fetching user recent reimbursements:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -265,3 +265,37 @@ export const editRequestLeave = async (
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// User's recent leave requests (for dashboard activities)
+export const getUserRecentLeaves = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    // Fetch leaves from past 3 days to now
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+    const leaves = await LeaveRequest.findAll({
+      where: {
+        userId,
+        createdAt: {
+          [Op.gte]: threeDaysAgo,
+        },
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 5,
+    });
+
+    res.status(200).json(leaves);
+  } catch (error) {
+    console.error('Error fetching user recent leaves:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

@@ -1,13 +1,8 @@
 import { Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { Payroll } from '../entities/Payroll';
-import { PayrollAdjustment } from '../entities/PayrollAdjustment';
-import { User } from '../entities/User';
+import { Payroll } from '../models/payroll';
+import { PayrollAdjustment } from '../models/payrollAdjustment';
+import { User } from '../models/users';
 import { AuthRequest } from '../middleware/authMiddleware';
-
-const payrollRepository = AppDataSource.getRepository(Payroll);
-const adjustmentRepository = AppDataSource.getRepository(PayrollAdjustment);
-const userRepository = AppDataSource.getRepository(User);
 
 export const addManualAdjustment = async (
   req: AuthRequest,
@@ -32,7 +27,7 @@ export const addManualAdjustment = async (
     }
 
     if (
-      !['bonus', 'deduction', 'damage', 'lateFine', 'others'].includes(type)
+      !['bonus', 'deduction', 'damage', 'lateFine', 'reimbursement', 'others'].includes(type)
     ) {
       res
         .status(400)
@@ -40,7 +35,7 @@ export const addManualAdjustment = async (
       return;
     }
 
-    const employee = await userRepository.findOne({ where: { id: userId } });
+    const employee = await User.findOne({ where: { id: userId } });
     if (!employee) {
       res
         .status(404)
@@ -49,7 +44,7 @@ export const addManualAdjustment = async (
     }
 
     // Manual inputs authored by Admin bypass standard queued approvals
-    const newAdjustment = adjustmentRepository.create({
+    const newAdjustment = await PayrollAdjustment.create({
       userId,
       title,
       type,
@@ -59,7 +54,6 @@ export const addManualAdjustment = async (
       reviewedById: adminId,
     });
 
-    await adjustmentRepository.save(newAdjustment);
     res.status(201).json(newAdjustment);
   } catch (error) {
     console.error('Error adding manual adjustment:', error);
@@ -82,12 +76,12 @@ export const calculateMonthlyPayroll = async (
       return;
     }
 
-    const allEmployees = await userRepository.find();
-    const payrollsCalculated: Payroll[] = [];
+    const allEmployees = await User.findAll();
+    const payrollsCalculated: any[] = [];
 
     // FR-PAY-03 Total Formula Requirements
     for (const employee of allEmployees) {
-      const adjustments = await adjustmentRepository.find({
+      const adjustments = await PayrollAdjustment.findAll({
         where: { userId: employee.id, status: 'approved' },
       });
 
@@ -107,31 +101,31 @@ export const calculateMonthlyPayroll = async (
         }
       }
 
-      const totalAdjustments = additions - deductions;
+      const totalAdjustmentsAmount = additions - deductions;
       const baseSalaryNumerical = Number(employee.baseSalary);
-      const netSalary = baseSalaryNumerical + totalAdjustments;
+      const netSalary = baseSalaryNumerical + totalAdjustmentsAmount;
 
-      let payrollRecord = await payrollRepository.findOne({
+      let payrollRecord = await Payroll.findOne({
         where: { userId: employee.id, month, year },
       });
 
       if (!payrollRecord) {
-        payrollRecord = payrollRepository.create({
+        payrollRecord = await Payroll.create({
           userId: employee.id,
           month,
           year,
           baseSalary: baseSalaryNumerical,
-          totalAdjustments,
-          netSalary,
+          totalAdjustments: totalAdjustmentsAmount,
+          netSalary: netSalary,
           status: 'pending',
         });
       } else {
-        payrollRecord.baseSalary = baseSalaryNumerical;
-        payrollRecord.totalAdjustments = totalAdjustments;
-        payrollRecord.netSalary = netSalary;
+        payrollRecord.baseSalary = baseSalaryNumerical.toString();
+        payrollRecord.totalAdjustments = totalAdjustmentsAmount.toString();
+        payrollRecord.netSalary = netSalary.toString();
+        await payrollRecord.save();
       }
 
-      await payrollRepository.save(payrollRecord);
       payrollsCalculated.push(payrollRecord);
     }
 
@@ -153,9 +147,9 @@ export const getSalarySlip = async (
     const { month, year } = req.params;
     const userId = req.user?.id;
 
-    const slip = await payrollRepository.findOne({
+    const slip = await Payroll.findOne({
       where: { userId, month, year: parseInt(year, 10) },
-      relations: ['user'],
+      include: [{ model: User, as: 'user' }],
     });
 
     if (!slip) {
@@ -165,12 +159,6 @@ export const getSalarySlip = async (
       });
       return;
     }
-
-    // Sanitize returned structure for frontend parsing directly mapping the components
-    const sanitizedUser = { ...slip.user };
-    delete (sanitizedUser as any).password;
-
-    slip.user = sanitizedUser as User;
 
     res.status(200).json(slip);
   } catch (error) {
@@ -193,11 +181,11 @@ export const updatePayrollStatus = async (
     }
 
     if (!['paid', 'failed'].includes(status)) {
-      res.status(400).json({ message: 'Status must be paid, or failed' });
+      res.status(400).json({ message: 'Status must be paid or failed' });
       return;
     }
 
-    const payrollRecord = await payrollRepository.findOne({ where: { id } });
+    const payrollRecord = await Payroll.findOne({ where: { id } });
     if (!payrollRecord) {
       res.status(404).json({ message: 'Payroll record not found' });
       return;
@@ -209,7 +197,7 @@ export const updatePayrollStatus = async (
       payrollRecord.paymentDate = new Date();
     }
 
-    await payrollRepository.save(payrollRecord);
+    await payrollRecord.save();
     res.status(200).json(payrollRecord);
   } catch (error) {
     console.error('Error updating payroll status:', error);
