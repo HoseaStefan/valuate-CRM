@@ -5,9 +5,9 @@ type AuthContextType = {
   user: any;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string, rememberMe?: boolean) => Promise<boolean>;
-  mockLogin: (username?: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  loginError: string | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,73 +15,73 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   loading: true,
   login: async () => false,
-  mockLogin: async () => {},
-  logout: async () => {}
+  logout: async () => {},
+  loginError: null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loginError, setLoginError] = useState<string | null>(null);
 
+  // Initialize auth from stored data on app start
   useEffect(() => {
     (async () => {
       try {
         const token = await authService.getToken();
-        if (token) {
-          const storedUsername = await authService.getUsername();
+        const userData = await authService.getUserData();
+        
+        if (token && userData) {
           setUser({
             token,
-            data: {
-              username: storedUsername || 'staff',
-              fullName: 'Staff',
-              namaLengkap: 'Staff',
-              role: 'staff',
-            },
+            data: userData,
           });
         }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const login = async (username: string, password: string, rememberMe: boolean = false) => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
+      setLoginError(null);
+      console.log('[AuthContext] Starting login...');
+      
       const response: any = await authService.authenticate(username, password);
-      if (response && response.token) {
-        await authService.setToken(response.token);
-        await authService.setRememberMe(rememberMe, username);
+      
+      if (response && response.token && response.user) {
+        console.log('[AuthContext] Login successful');
         setUser({ token: response.token, data: response.user });
         return true;
       }
+      
+      const error = 'Invalid response from server';
+      console.error('[AuthContext] Login failed:', error);
+      setLoginError(error);
       return false;
-    } catch (e) {
+    } catch (error: any) {
+      const errorMessage = error.message || 'Login failed. Please try again.';
+      console.error('[AuthContext] Login error:', errorMessage);
+      setLoginError(errorMessage);
       return false;
     }
   };
 
-  const mockLogin = async (username?: string) => {
-    const mockToken = 'mock-token';
-    await authService.setToken(mockToken);
-
-    setUser({
-      token: mockToken,
-      data: {
-        username: username || 'staff',
-        fullName: 'Staff',
-        namaLengkap: 'Staff',
-        role: 'staff',
-      },
-    });
-  };
-
   const logout = async () => {
-    await authService.forceClearAuth();
-    setUser(null);
+    try {
+      await authService.clearAuth();
+      setUser(null);
+      setLoginError(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, mockLogin, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, loading, login, logout, loginError }}>
       {children}
     </AuthContext.Provider>
   );

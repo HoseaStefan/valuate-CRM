@@ -7,8 +7,9 @@ import { router } from 'expo-router';
 import { useUserContext } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Image as ExpoImage } from 'expo-image';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
-export default function ProfileScreen() {
+function ProfileScreen() {
   const [showChangePasswordModal, setShowChangePasswordModal] = React.useState(false);
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
@@ -455,3 +456,5 @@ const styles = StyleSheet.create({
     color: ValuateColors.text.inverse,
   },
 });
+
+export default withProtectedRoute(ProfileScreen, 'ProfileScreen');

@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 type ReimburseStatus = 'Menunggu' | 'Disetujui' | 'Ditolak';
 
@@ -36,7 +37,7 @@ function formatIDR(amount: number) {
   }
 }
 
-export default function ReimburseScreen() {
+function ReimburseScreen() {
   const data = useMemo<ReimburseItem[]>(() => {
     const now = new Date();
     const items: ReimburseItem[] = [
@@ -265,3 +266,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default withProtectedRoute(ReimburseScreen, 'ReimburseScreen');

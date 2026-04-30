@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 type AttendanceStatus = 'Hadir' | 'Telat' | 'Izin' | 'Sakit' | 'Libur';
 
@@ -87,7 +88,7 @@ function statusColor(status: AttendanceStatus) {
   }
 }
 
-export default function AttendanceScreen() {
+function AttendanceScreen() {
   const now = new Date();
   const currentMonthIndex = now.getMonth();
   const currentYear = now.getFullYear();
@@ -356,3 +357,5 @@ const styles = StyleSheet.create({
     color: ValuateColors.primary,
   },
 });
+
+export default withProtectedRoute(AttendanceScreen, 'AttendanceScreen');

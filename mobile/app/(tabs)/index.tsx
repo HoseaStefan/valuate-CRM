@@ -9,9 +9,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { Image as ExpoImage } from 'expo-image';
 import { FlashList } from '@shopify/flash-list';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
+import * as SecureStore from 'expo-secure-store';
 
-export default function HomeScreen() {
+function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [hasPendingRequests, setHasPendingRequests] = useState(false);
+  const [activities, setActivities] = useState<any[]>([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
   
   // Get auth & user state
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -23,6 +28,113 @@ export default function HomeScreen() {
       router.replace('/login');
     }
   }, [isAuthenticated, authLoading]);
+
+  // Fetch activities on mount
+  useEffect(() => {
+    fetchRecentActivities();
+  }, [user?.id]);
+
+  const fetchRecentActivities = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setActivitiesLoading(true);
+      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+      const token = await SecureStore.getItemAsync(process.env.EXPO_PUBLIC_TOKEN_STORAGE_KEY || 'auth_token');
+      
+      const activitiesList: any[] = [];
+      
+      // Fetch leave requests
+      try {
+        const leaveResponse = await fetch(`${baseUrl}/api/leave/recent`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (leaveResponse.ok) {
+          const leaveData = await leaveResponse.json();
+          const recentLeaves = (Array.isArray(leaveData) ? leaveData : leaveData.data || [])
+            .slice(0, 5)
+            .map((item: any) => ({
+              id: `leave-${item.id}`,
+              title: 'Pengajuan Cuti',
+              subtitle: `${new Date(item.startDate).toLocaleDateString('id-ID')} - ${new Date(item.endDate).toLocaleDateString('id-ID')}`,
+              status: item.status === 'approved' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : 'Menunggu',
+              type: 'leave',
+              color: item.status === 'approved' ? 'success' : 
+                     item.status === 'rejected' ? 'error' : 'warning',
+            }));
+          activitiesList.push(...recentLeaves);
+        }
+      } catch (error) {
+        console.log('[Dashboard] Error fetching leave requests:', error);
+      }
+      
+      // Fetch reimbursement requests
+      try {
+        const reimburseResponse = await fetch(`${baseUrl}/api/reimbursement/recent`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (reimburseResponse.ok) {
+          const reimburseData = await reimburseResponse.json();
+          const recentReimburse = (Array.isArray(reimburseData) ? reimburseData : reimburseData.data || [])
+            .slice(0, 5)
+            .map((item: any) => ({
+              id: `reimburse-${item.id}`,
+              title: `Reimburse ${item.title || 'Lainnya'}`,
+              subtitle: `Rp ${(item.amount || 0).toLocaleString('id-ID')}`,
+              status: item.status === 'approved' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : 'Menunggu',
+              type: 'reimburse',
+              color: item.status === 'approved' ? 'success' : 
+                     item.status === 'rejected' ? 'error' : 'warning',
+            }));
+          activitiesList.push(...recentReimburse);
+        }
+      } catch (error) {
+        console.log('[Dashboard] Error fetching reimbursement requests:', error);
+      }
+      
+      // Sort by ID (newest first) - mix of both types
+      activitiesList.sort((a, b) => Number(b.id.split('-')[1]) - Number(a.id.split('-')[1]));
+      setActivities(activitiesList.slice(0, 6)); // Show max 6 recent activities
+      
+    } catch (error) {
+      console.log('[Dashboard] Error fetching activities:', error);
+      setActivities([]);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  };
+
+  const checkPendingRequests = async () => {
+    try {
+      if (!user?.id) return;
+      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+      const token = await SecureStore.getItemAsync(process.env.EXPO_PUBLIC_TOKEN_STORAGE_KEY || 'auth_token');
+      
+      // Check for pending leave requests
+      const leaveResponse = await fetch(`${baseUrl}/api/leave/recent`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      const leaveData = leaveResponse.ok ? await leaveResponse.json() : null;
+      const hasPendingLeave = leaveData && (Array.isArray(leaveData) ? leaveData.some((l: any) => l.status === 'pending') : leaveData.data?.some((l: any) => l.status === 'pending'));
+      
+      setHasPendingRequests(!!hasPendingLeave);
+    } catch (error) {
+      console.log('[Dashboard] Error checking pending requests:', error);
+    }
+  };
+
+  useEffect(() => {
+    checkPendingRequests();
+  }, [user?.id]);
 
   // Prevent back button from going to login
   useFocusEffect(
@@ -49,7 +161,8 @@ export default function HomeScreen() {
     setRefreshing(true);
     try {
       await refreshUserData(true);
-      // Nanti tambahkan fetch API untuk Attendance/Leave/Reimburse disini
+      await fetchRecentActivities();
+      await checkPendingRequests();
     } catch (error) {
       console.log('Error refreshing dashboard:', error);
     } finally {
@@ -57,23 +170,39 @@ export default function HomeScreen() {
     }
   };
 
+  const getColorFromString = (colorStr: string) => {
+    switch (colorStr) {
+      case 'success': return ValuateColors.success;
+      case 'error': return ValuateColors.error;
+      case 'warning': return ValuateColors.warning;
+      default: return ValuateColors.primary;
+    }
+  };
+
   // Dummy data untuk Aktivitas Terbaru (Frontend Design Only)
   const dummyActivities = [
-    { id: '1', title: 'Absen Masuk', subtitle: 'Hari ini, 08:00 AM', status: 'Tepat Waktu', type: 'attendance', color: ValuateColors.success },
     { id: '2', title: 'Pengajuan Cuti', subtitle: '12 Mei - 14 Mei 2026', status: 'Menunggu', type: 'leave', color: ValuateColors.warning },
-    { id: '3', title: 'Reimburse Transport', subtitle: 'Kunjungan Proyek', status: 'Disetujui', type: 'reimburse', color: ValuateColors.primary },
+    { id: '3', title: 'Reimburse Transport', subtitle: 'Rp 150.000', status: 'Disetujui', type: 'reimburse', color: ValuateColors.primary },
   ];
+
+  // Use real activities if available, otherwise use dummy
+  const displayActivities = activities.length > 0 
+    ? activities.map((activity: any) => ({
+        ...activity,
+        color: getColorFromString(activity.color),
+      }))
+    : dummyActivities;
 
   const dashboardData = [
     { id: 'header', type: 'HEADER' },
-    { id: 'activities_card', type: 'ACTIVITIES_CARD', data: dummyActivities },
+    { id: 'activities_card', type: 'ACTIVITIES_CARD', data: displayActivities },
   ];
 
   const getMenuIcon = (type: string) => {
     switch (type) {
       case 'attendance': return 'clock.fill';
-      case 'leave': return 'calendar';
-      case 'reimburse': return 'doc.text.fill';
+      case 'leave': return 'calendar.badge.minus';
+      case 'reimburse': return 'banknote.fill';
       default: return 'doc';
     }
   };
@@ -96,14 +225,20 @@ export default function HomeScreen() {
                 <Text style={styles.welcomeText}>Selamat datang kembali</Text>
               </View>
             </View>
+            
+            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/request' as any)}>
+              <IconSymbol name="bell.fill" size={24} color={ValuateColors.primary} />
+              {hasPendingRequests && <View style={styles.notificationBadge} />}
+            </TouchableOpacity>
           </View>
           
           <View style={styles.balanceCard}>
             <Text style={styles.balanceLabel}>KANZEN CONSTRUCTION</Text>
             <Text style={styles.companyStatus}>Portal Staff</Text>
             
-            {/* New 3 Main Menus for Staff */}
+            {/* 2x2 Grid Menu for Staff */}
             <View style={styles.balanceActions}>
+              {/* Row 1: Absensi, Cuti */}
               <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/attendance' as any)}>
                   <View style={styles.iconContainer}>
@@ -112,6 +247,16 @@ export default function HomeScreen() {
                   <Text style={styles.actionText}>Absensi</Text>
                 </TouchableOpacity>
                 
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/leave' as any)}>
+                  <View style={styles.iconContainer}>
+                    <IconSymbol name="calendar.badge.minus" size={24} color={ValuateColors.primary} />
+                  </View>
+                  <Text style={styles.actionText}>Cuti</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Row 2: Reimburse, Payroll */}
+              <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/reimburse' as any)}>
                   <View style={styles.iconContainer}>
                     <IconSymbol name="banknote.fill" size={24} color={ValuateColors.primary} />
@@ -119,11 +264,11 @@ export default function HomeScreen() {
                   <Text style={styles.actionText}>Reimburse</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/leave' as any)}>
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/payroll' as any)}>
                   <View style={styles.iconContainer}>
-                    <IconSymbol name="calendar.badge.minus" size={24} color={ValuateColors.primary} />
+                    <IconSymbol name="doc.richtext.fill" size={24} color={ValuateColors.primary} />
                   </View>
-                  <Text style={styles.actionText}>Cuti</Text>
+                  <Text style={styles.actionText}>Payroll</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -191,6 +336,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
@@ -198,6 +344,19 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  notificationButton: {
+    position: 'relative',
+    padding: 8,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#EF4444',
   },
   avatarContainer: {
     width: 40,
@@ -252,7 +411,9 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
+    gap: 12,
+    marginBottom: 12,
   },
   actionButton: {
     alignItems: 'center',
@@ -338,3 +499,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default withProtectedRoute(HomeScreen, 'HomeScreen');

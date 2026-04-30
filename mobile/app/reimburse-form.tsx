@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 const TYPES = ['Transport', 'Makan', 'ATK', 'Lainnya'] as const;
 
@@ -23,7 +24,7 @@ function formatIDRFromDigits(digits: string) {
   }
 }
 
-export default function ReimburseFormScreen() {
+function ReimburseFormScreen() {
   const now = useMemo(() => new Date(), []);
   const dateLabel = useMemo(
     () => now.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' }),
@@ -298,3 +299,5 @@ const styles = StyleSheet.create({
     color: ValuateColors.primary,
   },
 });
+
+export default withProtectedRoute(ReimburseFormScreen, 'ReimburseFormScreen');

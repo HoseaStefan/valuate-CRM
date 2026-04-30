@@ -1,8 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
 export enum UserRole {
   ADMIN = 'admin',
-  STAFF = 'staff'
+  STAFF = 'staff',
 }
 
 @Entity('users')
@@ -28,7 +36,12 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   photoPath: string | null;
 
-  @Column({ type: 'enum', enum: UserRole, nullable: false, default: UserRole.STAFF })
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    nullable: false,
+    default: UserRole.STAFF,
+  })
   role: UserRole;
 
   @Column({ type: 'int', nullable: true })

@@ -1,10 +1,18 @@
 import { Router } from 'express';
-import { createReimbursement, updateReimbursementApproval, getReimbursementRequests } from '../controllers/reimbursementController';
+import {
+  createReimbursement,
+  updateReimbursementApproval,
+  getReimbursementRequests,
+  getUserRecentReimbursements,
+} from '../controllers/reimbursementController';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
 
 router.use(authMiddleware);
+
+// User's recent reimbursements (for dashboard activities)
+router.get('/recent', getUserRecentReimbursements);
 
 // Mobile Staff requesting reimbursement
 router.post('/', createReimbursement);
