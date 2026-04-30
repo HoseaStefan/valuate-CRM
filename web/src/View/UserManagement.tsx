@@ -33,10 +33,10 @@ import AddUserModal from '../modals/AddUserModal';
 
 // Mock data
 const users = [
-  { id: 1, name: 'John Doe', email: 'john.doe@example.com', role: 'Admin', manager: 'System', status: 'Active', avatar: '/avatars/avatar-1.png' },
+  { id: 1, name: 'John Doe', email: 'john.doe@example.com', role: 'Manager', manager: 'System', status: 'Active', avatar: '/avatars/avatar-1.png' },
   { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Manager', manager: 'John Doe', status: 'Active', avatar: '/avatars/avatar-2.png' },
-  { id: 3, name: 'Peter Jones', email: 'peter.jones@example.com', role: 'Employee', manager: 'Jane Smith', status: 'Inactive', avatar: '/avatars/avatar-3.png' },
-  { id: 4, name: 'Sarah Miller', email: 'sarah.miller@example.com', role: 'Employee', manager: 'Jane Smith', status: 'Active', avatar: '/avatars/avatar-4.png' },
+  { id: 3, name: 'Peter Jones', email: 'peter.jones@example.com', role: 'Staff', manager: 'Jane Smith', status: 'Inactive', avatar: '/avatars/avatar-3.png' },
+  { id: 4, name: 'Sarah Miller', email: 'sarah.miller@example.com', role: 'Staff', manager: 'Jane Smith', status: 'Active', avatar: '/avatars/avatar-4.png' },
 ];
 
 type Order = 'asc' | 'desc';
@@ -133,9 +133,8 @@ export default function UserManagement() {
             <InputLabel>Role</InputLabel>
             <Select label="Role" defaultValue="">
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
               <MenuItem value="Manager">Manager</MenuItem>
-              <MenuItem value="Employee">Employee</MenuItem>
+              <MenuItem value="Staff">Staff</MenuItem>
             </Select>
           </FormControl>
           <Button variant="outlined" sx={{ flexShrink: 0 }}>Reset</Button>

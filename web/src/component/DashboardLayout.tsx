@@ -15,14 +15,12 @@ import {
   Button,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import LeaveIcon from '@mui/icons-material/TimeToLeave';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
-import PaidIcon from '@mui/icons-material/Paid';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -115,7 +113,6 @@ export default function DashboardLayout({
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>CRM Admin Panel</Typography>
-          <IconButton color="inherit"><SettingsIcon /></IconButton>
           <Button color="inherit" startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ textTransform: 'none' }}>
             Logout
           </Button>
