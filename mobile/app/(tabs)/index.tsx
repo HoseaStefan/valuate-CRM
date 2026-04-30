@@ -12,6 +12,7 @@ import { FlashList } from '@shopify/flash-list';
 
 export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const [hasPendingRequests, setHasPendingRequests] = useState(false);
   
   // Get auth & user state
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -23,6 +24,24 @@ export default function HomeScreen() {
       router.replace('/login');
     }
   }, [isAuthenticated, authLoading]);
+
+  // Check for pending requests
+  useEffect(() => {
+    checkPendingRequests();
+  }, []);
+
+  const checkPendingRequests = async () => {
+    try {
+      // TODO: Replace with actual API call
+      // const response = await fetch(`${API_URL}/requests/pending-count`);
+      // const data = await response.json();
+      
+      // Mock check - in real app, fetch from API
+      setHasPendingRequests(true); // Set based on API response
+    } catch (error) {
+      console.log('Error checking pending requests:', error);
+    }
+  };
 
   // Prevent back button from going to login
   useFocusEffect(
@@ -96,14 +115,20 @@ export default function HomeScreen() {
                 <Text style={styles.welcomeText}>Selamat datang kembali</Text>
               </View>
             </View>
+            
+            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/request' as any)}>
+              <IconSymbol name="bell.fill" size={24} color={ValuateColors.primary} />
+              {hasPendingRequests && <View style={styles.notificationBadge} />}
+            </TouchableOpacity>
           </View>
           
           <View style={styles.balanceCard}>
             <Text style={styles.balanceLabel}>KANZEN CONSTRUCTION</Text>
             <Text style={styles.companyStatus}>Portal Staff</Text>
             
-            {/* New 3 Main Menus for Staff */}
+            {/* 2x2 Grid Menu for Staff */}
             <View style={styles.balanceActions}>
+              {/* Row 1: Absensi, Cuti */}
               <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/attendance' as any)}>
                   <View style={styles.iconContainer}>
@@ -112,6 +137,16 @@ export default function HomeScreen() {
                   <Text style={styles.actionText}>Absensi</Text>
                 </TouchableOpacity>
                 
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/leave' as any)}>
+                  <View style={styles.iconContainer}>
+                    <IconSymbol name="calendar.badge.minus" size={24} color={ValuateColors.primary} />
+                  </View>
+                  <Text style={styles.actionText}>Cuti</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Row 2: Reimburse, Payroll */}
+              <View style={styles.actionRow}>
                 <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/reimburse' as any)}>
                   <View style={styles.iconContainer}>
                     <IconSymbol name="banknote.fill" size={24} color={ValuateColors.primary} />
@@ -119,11 +154,11 @@ export default function HomeScreen() {
                   <Text style={styles.actionText}>Reimburse</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/leave' as any)}>
+                <TouchableOpacity style={styles.actionButton} onPress={() => router.push('/payroll' as any)}>
                   <View style={styles.iconContainer}>
-                    <IconSymbol name="calendar.badge.minus" size={24} color={ValuateColors.primary} />
+                    <IconSymbol name="doc.richtext.fill" size={24} color={ValuateColors.primary} />
                   </View>
-                  <Text style={styles.actionText}>Cuti</Text>
+                  <Text style={styles.actionText}>Payroll</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -191,6 +226,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 10,
@@ -198,6 +234,19 @@ const styles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  notificationButton: {
+    position: 'relative',
+    padding: 8,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#EF4444',
   },
   avatarContainer: {
     width: 40,
@@ -252,7 +301,9 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
+    gap: 12,
+    marginBottom: 12,
   },
   actionButton: {
     alignItems: 'center',

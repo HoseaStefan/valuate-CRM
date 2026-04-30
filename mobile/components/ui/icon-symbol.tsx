@@ -95,6 +95,8 @@ const MAPPING = {
   'briefcase': 'work',
   'briefcase.fill': 'work',
   'gearshape': 'settings',
+  'doc.richtext.fill': 'description',
+  'bell.badge.fill': 'notifications-active',
 } as IconMapping;
 
 /**
