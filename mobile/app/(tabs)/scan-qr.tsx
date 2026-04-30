@@ -4,10 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function ScanQRScreen() {
+function ScanQRScreen() {
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
@@ -228,3 +229,5 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
   },
 });
+
+export default withProtectedRoute(ScanQRScreen, 'ScanQRScreen');

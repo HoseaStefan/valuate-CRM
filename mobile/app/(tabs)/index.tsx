@@ -9,8 +9,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserContext } from '@/contexts/UserContext';
 import { Image as ExpoImage } from 'expo-image';
 import { FlashList } from '@shopify/flash-list';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
-export default function HomeScreen() {
+function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
   
@@ -389,3 +390,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default withProtectedRoute(HomeScreen, 'HomeScreen');

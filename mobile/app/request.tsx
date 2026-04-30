@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 interface StaffRequest {
   id: string;
@@ -22,7 +23,7 @@ interface StaffRequest {
 
 type FilterType = 'All' | 'Pending' | 'Approved' | 'Rejected';
 
-export default function RequestScreen() {
+function RequestScreen() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [requestsData, setRequestsData] = useState<StaffRequest[]>([]);
@@ -503,3 +504,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default withProtectedRoute(RequestScreen, 'RequestScreen');

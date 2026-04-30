@@ -6,6 +6,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 interface PayrollItem {
   id: string;
@@ -18,7 +19,7 @@ interface PayrollItem {
   status: 'Processed' | 'Pending' | 'Error';
 }
 
-export default function PayrollScreen() {
+function PayrollScreen() {
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -291,3 +292,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default withProtectedRoute(PayrollScreen, 'PayrollScreen');

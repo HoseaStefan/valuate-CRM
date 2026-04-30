@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 const TYPES = ['Cuti Tahunan', 'Cuti Sakit', 'Izin'] as const;
 
@@ -41,7 +42,7 @@ function normalizeDate(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export default function LeaveFormScreen() {
+function LeaveFormScreen() {
   const now = useMemo(() => new Date(), []);
   const today = useMemo(() => normalizeDate(now), [now]);
 
@@ -496,3 +497,5 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
 });
+
+export default withProtectedRoute(LeaveFormScreen, 'LeaveFormScreen');

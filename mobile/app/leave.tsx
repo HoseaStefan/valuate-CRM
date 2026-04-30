@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 type LeaveStatus = 'Menunggu' | 'Disetujui' | 'Ditolak';
 
@@ -34,7 +35,7 @@ function formatRange(start: Date, end: Date) {
   return `${startLabel} - ${endLabel}`;
 }
 
-export default function LeaveScreen() {
+function LeaveScreen() {
   const data = useMemo<LeaveItem[]>(() => {
     const now = new Date();
     const items: LeaveItem[] = [
@@ -257,3 +258,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default withProtectedRoute(LeaveScreen, 'LeaveScreen');

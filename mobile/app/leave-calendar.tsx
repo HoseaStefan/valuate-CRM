@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
+import { withProtectedRoute } from '@/components/ProtectedRoute';
 
 type LeaveSchedule = {
   id: string;
@@ -92,7 +93,7 @@ function buildMonthGrid(monthStart: Date) {
   return cells;
 }
 
-export default function LeaveCalendarScreen() {
+function LeaveCalendarScreen() {
   // 3. Tanggal default hari ini sudah tertangani oleh inisialisasi ini
   const today = useMemo(() => normalizeDate(new Date()), []);
 
@@ -403,3 +404,5 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
 });
+
+export default withProtectedRoute(LeaveCalendarScreen, 'LeaveCalendarScreen');
