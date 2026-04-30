@@ -11,6 +11,7 @@ import AssignManager from './View/AssignManager';
 import AddSalary from './View/AddSalary';
 import LeaveManagement from './View/LeaveManagement';
 import Attendance from './View/Attendance';
+import UserTree from './View/UserTree';
 // import Payroll from './View/Payroll';
 
 function AppContent() {
@@ -28,6 +29,8 @@ function AppContent() {
                     <Route path="/user/:userId/add-salary" element={<AddSalary />} />
                     <Route path="/leave-management" element={<LeaveManagement />} />
                     <Route path="/attendance" element={<Attendance />} />
+                    <Route path="/tree-management" element={<UserTree />} />
+                    {/* <Route path="/payroll" element={<Payroll />} /> */}
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </div>

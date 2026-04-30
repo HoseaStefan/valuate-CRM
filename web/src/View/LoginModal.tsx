@@ -22,7 +22,6 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { fetchEndpoint } from '../fetchEndpoint';
 
 const LoginModal: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -40,19 +39,10 @@ const LoginModal: React.FC = () => {
     setLoginError('');
 
     try {
-      const response = await fetchEndpoint('/auth/login', 'POST', null, { 
-        email, 
-        password 
-      });
-      
-      if (response && response.token) {
-        login(response.token);
-        setEmail('');
-        setPassword('');
-        navigate('/dashboard', { replace: true });
-      } else {
-        throw new Error(response?.message || 'Invalid login credentials');
-      }
+      await login(email, password);
+      setEmail('');
+      setPassword('');
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof Error) {
