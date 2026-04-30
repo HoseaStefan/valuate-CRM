@@ -15,7 +15,7 @@ router.use(authMiddleware);
 router.get('/history', getAttendanceHistory);
 
 // Generate QR code for attendance
-router.get('/generate-qr', generateQR);
+router.get('/generate-qr', requireRole(['admin']), generateQR);
 
 // Scan QR to clock in/out
 router.post('/scan', scanQR);

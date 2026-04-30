@@ -110,9 +110,11 @@ export const generateQR = async (
   req: AuthRequest,
   res: Response,
 ): Promise<void> => {
+  console.log("Generating QR for user", req.user?.id);
   try {
     const { qrImageUrl, payload } = generateAttendanceQRCode();
     res.status(200).json({ qrImageUrl, payload });
+    
   } catch (error) {
     console.error('Error generating QR:', error);
     res.status(500).json({ message: 'Internal server error' });

@@ -1,6 +1,6 @@
 import DashboardLayout from "../component/DashboardLayout";
 import { Box, Typography, Button, Tabs, Tab, Card, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Stack, Avatar, Chip, Modal, TextField, Alert } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 
 // Mock data for attendance records
@@ -32,9 +32,19 @@ const Attendance = () => {
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [isQRRefreshing, setIsQRRefreshing] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     setAttendanceRecords(dummyAttendance);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
   }, []);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -42,14 +52,9 @@ const Attendance = () => {
   };
 
   const handleGenerateQR = async () => {
-    if (!token) {
-      setQrError('Please login first to generate QR code');
-      return;
-    }
-    
-    setIsGeneratingQR(true);
-    setQrError(null);
     try {
+      setIsGeneratingQR(true);
+      console.log("Generating QR code with token:", token);
       const response = await fetch('http://localhost:3000/api/attendance/generate-qr', {
         method: 'GET',
         headers: {
@@ -60,6 +65,35 @@ const Attendance = () => {
       if (response.ok) {
         const data = await response.json();
         setQrImageUrl(data.qrImageUrl);
+        setQrError(null);
+
+        // Stop any existing interval before starting a new one
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+
+        // Start interval to refresh QR code every 1 minute (60000 ms)
+        setIsQRRefreshing(true);
+        intervalRef.current = setInterval(async () => {
+          try {
+            const refreshResponse = await fetch('http://localhost:3000/api/attendance/generate-qr', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+            if (refreshResponse.ok) {
+              const refreshData = await refreshResponse.json();
+              setQrImageUrl(refreshData.qrImageUrl);
+              console.log('QR code refreshed');
+            } else {
+              console.error('Failed to refresh QR code:', refreshResponse.status);
+            }
+          } catch (error) {
+            console.error('Error refreshing QR code:', error);
+          }
+        }, 60000); // Refresh every 1 minute
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Failed to generate QR code' }));
         setQrError(errorData.message || 'Failed to generate QR code');
@@ -71,6 +105,16 @@ const Attendance = () => {
     } finally {
       setIsGeneratingQR(false);
     }
+  };
+
+  const handleStopQRRefresh = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    setIsQRRefreshing(false);
+    setQrImageUrl(null);
+    setQrError(null);
   };
 
   const handleOpenEditModal = (record: any) => {
@@ -167,14 +211,26 @@ const Attendance = () => {
               Generate a unique and time-sensitive QR code for employees to scan for check-in or check-out.
             </Typography>
             {qrError && <Alert severity="error" sx={{ mb: 3 }}>{qrError}</Alert>}
-            <Button 
-              variant="contained" 
-              sx={{ mb: 3 }}
-              onClick={handleGenerateQR}
-              disabled={isGeneratingQR || !token}
-            >
-              {isGeneratingQR ? 'Generating...' : "Generate Today's QR Code"}
-            </Button>
+            {isQRRefreshing && <Alert severity="info" sx={{ mb: 3 }}>QR code auto-refreshing every 1 minute</Alert>}
+            <Box sx={{ mb: 3 }}>
+              <Button 
+                variant="contained" 
+                sx={{ mr: 2 }}
+                onClick={handleGenerateQR}
+                disabled={isQRRefreshing}
+              >
+                {isGeneratingQR ? 'Generating...' : "Generate Today's QR Code"}
+              </Button>
+              {isQRRefreshing && (
+                <Button 
+                  variant="outlined" 
+                  color="error"
+                  onClick={handleStopQRRefresh}
+                >
+                  Stop Refresh
+                </Button>
+              )}
+            </Box>
             <Box sx={{ border: '1px dashed grey', p: 4, borderRadius: 2, maxWidth: 500, margin: 'auto' }}>
               {qrImageUrl ? (
                 <Box sx={{ textAlign: 'center' }}>
