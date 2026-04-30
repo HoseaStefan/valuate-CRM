@@ -48,66 +48,26 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { username, token, newPassword } = req.body as any;
-
-        // Step 2: perform reset when token and newPassword provided
-        if (token && newPassword) {
-            let decoded: any;
-            try {
-                decoded = jwt.verify(token, JWT_SECRET) as any;
-            } catch (err) {
-                res.status(400).json({ message: 'Invalid or expired token' });
-                return;
-            }
-
-            if (decoded?.purpose !== 'password_reset' || !decoded?.id) {
-                res.status(400).json({ message: 'Invalid token payload' });
-                return;
-            }
-
-            const user = await User.findOne({ where: { id: decoded.id } });
-            if (!user) {
-                res.status(404).json({ message: 'User not found' });
-                return;
-            }
-
-            if (typeof newPassword !== 'string' || newPassword.length < 8) {
-                res.status(400).json({ message: 'New password must be at least 8 characters' });
-                return;
-            }
-
-            const hashed = await bcrypt.hash(newPassword, 10);
-            user.password = hashed;
-            await user.save();
-
-            res.status(200).json({ message: 'Password has been reset successfully' });
-            return;
-        }
+        const { username } = req.body as any;
 
         if (!username) {
-            res.status(400).json({ message: 'username (email) is required to request password reset' });
+            res.status(400).json({ message: 'username (email) is required' });
             return;
         }
 
         const user = await User.findOne({ where: { email: username } });
         if (!user) {
             // Do not reveal whether user exists; respond generically
-            res.status(200).json({ message: 'If the email exists, password reset instructions have been sent' });
+            res.status(200).json({ message: 'If the email exists, the password has been reset' });
             return;
         }
 
-        const payload = { id: user.id, purpose: 'password_reset' };
-        const resetToken = jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' });
+        const defaultPassword = process.env.DEFAULT_RESET_PASSWORD || 'pass123';
+        const hashed = await bcrypt.hash(defaultPassword, 10);
+        user.password = hashed;
+        await user.save();
 
-        // In production, send the token via email. For now return token in response for developer convenience.
-        const respondWithToken = process.env.SEND_RESET_TOKEN_IN_RESPONSE === 'true' || process.env.NODE_ENV !== 'production';
-
-        if (respondWithToken) {
-            res.status(200).json({ message: 'Password reset token generated', token: resetToken });
-        } else {
-            // TODO: integrate email sending
-            res.status(200).json({ message: 'If the email exists, password reset instructions have been sent' });
-        }
+        res.status(200).json({ message: 'Password has been reset to default' });
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({ message: 'Internal server error' });
