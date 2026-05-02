@@ -1,21 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
-
-type AttendanceStatus = 'Hadir' | 'Telat' | 'Izin' | 'Sakit' | 'Libur';
-
-type AttendanceItem = {
-  id: string;
-  date: Date;
-  status: AttendanceStatus;
-  checkIn?: string;
-  checkOut?: string;
-};
+import { attendanceService, AttendanceItem, AttendanceStatus } from '@/services/attendanceService';
 
 const MONTHS_ID = [
   'Januari',
@@ -33,45 +24,6 @@ const MONTHS_ID = [
 ];
 
 const WEEKDAYS_ID = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'] as const;
-
-function daysInMonth(year: number, monthIndex: number) {
-  return new Date(year, monthIndex + 1, 0).getDate();
-}
-
-function buildAttendanceForMonth(year: number, monthIndex: number, maxDay?: number): AttendanceItem[] {
-  const totalDays = daysInMonth(year, monthIndex);
-  const endDay = Math.max(1, Math.min(maxDay ?? totalDays, totalDays));
-
-  const items: AttendanceItem[] = [];
-  for (let day = endDay; day >= 1; day -= 1) {
-    const date = new Date(year, monthIndex, day);
-    const weekday = date.getDay();
-    const isWeekend = weekday === 0 || weekday === 6;
-
-    // Cukup tampilkan hari yang memang ada aktivitas absen (check-in / check-out).
-    if (isWeekend) continue;
-
-    let status: AttendanceStatus = 'Hadir';
-    if (day % 11 === 0) status = 'Izin';
-    else if (day % 9 === 0) status = 'Sakit';
-    else if (day % 7 === 0) status = 'Telat';
-
-    if (status !== 'Hadir' && status !== 'Telat') continue;
-
-    const checkIn = status === 'Hadir' ? '08:00' : status === 'Telat' ? '08:17' : undefined;
-    const checkOut = status === 'Hadir' || status === 'Telat' ? '17:00' : undefined;
-
-    items.push({
-      id: `${year}-${monthIndex + 1}-${day}`,
-      date,
-      status,
-      checkIn,
-      checkOut,
-    });
-  }
-
-  return items;
-}
 
 function statusColor(status: AttendanceStatus) {
   switch (status) {
@@ -92,13 +44,14 @@ function AttendanceScreen() {
   const now = new Date();
   const currentMonthIndex = now.getMonth();
   const currentYear = now.getFullYear();
-  const currentDay = now.getDate();
 
   const [monthIndex, setMonthIndex] = useState(currentMonthIndex);
   const [year, setYear] = useState(currentYear);
 
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
+  const [data, setData] = useState<AttendanceItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const years = useMemo(() => {
     return Array.from({ length: 4 }, (_, i) => currentYear - 3 + i);
@@ -109,17 +62,33 @@ function AttendanceScreen() {
     return MONTHS_ID.slice(0, end + 1).map((label, idx) => ({ label, index: idx }));
   }, [year, currentYear, currentMonthIndex]);
 
-  const maxDayForSelection = useMemo(() => {
-    if (year !== currentYear) return undefined;
-    if (monthIndex !== currentMonthIndex) return undefined;
-    return currentDay;
-  }, [year, monthIndex, currentYear, currentMonthIndex, currentDay]);
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (year > currentYear) {
+        setData([]);
+        return;
+      }
 
-  const data = useMemo(() => {
-    if (year > currentYear) return [];
-    if (year === currentYear && monthIndex > currentMonthIndex) return [];
-    return buildAttendanceForMonth(year, monthIndex, maxDayForSelection);
-  }, [year, monthIndex, currentYear, currentMonthIndex, maxDayForSelection]);
+      if (year === currentYear && monthIndex > currentMonthIndex) {
+        setData([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const items = await attendanceService.getHistory(monthIndex + 1, year);
+        const sorted = [...items].sort((a, b) => b.date.getTime() - a.date.getTime());
+        setData(sorted);
+      } catch (error) {
+        console.log('[Attendance] Error fetching history:', error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAttendance();
+  }, [monthIndex, year, currentYear, currentMonthIndex]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -145,17 +114,23 @@ function AttendanceScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-        {data.length > 0 ? (
+        {loading ? (
+          <View style={styles.loadingState}>
+            <ActivityIndicator size="large" color={ValuateColors.primary} />
+          </View>
+        ) : data.length > 0 ? (
           data.map(item => {
             const day = item.date.getDate();
             const weekday = WEEKDAYS_ID[item.date.getDay() as 0 | 1 | 2 | 3 | 4 | 5 | 6];
             const color = statusColor(item.status);
+            const clockOut = item.checkOut && item.checkOut !== '00:00:00' ? item.checkOut : '-';
+            const clockIn = item.checkIn || '-';
 
             return (
               <View key={item.id} style={styles.row}>
                 <View style={styles.rowLeft}>
                   <Text style={styles.rowDate}>{weekday}, {day}</Text>
-                  <Text style={styles.rowTime}>{`${item.checkIn} - ${item.checkOut}`}</Text>
+                  <Text style={styles.rowTime}>{`${clockIn} - ${clockOut}`}</Text>
                 </View>
 
                 <View style={[styles.statusPill, { backgroundColor: color + '20', borderColor: color + '40' }]}>
@@ -321,6 +296,11 @@ const styles = StyleSheet.create({
     color: ValuateColors.text.light,
     marginTop: 12,
     textAlign: 'center',
+  },
+  loadingState: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modalOverlay: {
     flex: 1,
