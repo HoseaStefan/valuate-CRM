@@ -255,26 +255,6 @@ const LoginModal: React.FC = () => {
           </Box>
 
           <Divider sx={{ my: 3, borderColor: 'rgba(0,0,0,0.07)' }} />
-
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              Forgot your password?{' '}
-              <Link
-                component={RouterLink}
-                to="/forgot-password"
-                underline="hover"
-                sx={{
-                  fontWeight: 600,
-                  color: '#6366f1',
-                  cursor: 'pointer',
-                  fontSize: 'inherit',
-                  '&:hover': { color: '#4f51e0' },
-                }}
-              >
-                Reset Password
-              </Link>
-            </Typography>
-          </Box>
         </CardContent>
       </Card>
 

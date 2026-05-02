@@ -9,26 +9,98 @@ import {
   Typography,
   Button,
 } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../component/DashboardLayout';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { fetchEndpoint } from '../fetchEndpoint';
 
-// Mock data - in a real app, you'd fetch this based on ID
-const users = [
-    { id: 1, name: 'John Doe', email: 'john.doe@example.com', role: 'Admin', manager: 'System', status: 'Active', avatar: '/avatars/avatar-1.png', phone: '081234567890', address: '123 Main St, Anytown, USA' },
-    { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Manager', manager: 'John Doe', status: 'Active', avatar: '/avatars/avatar-2.png', phone: '081234567891', address: '456 Oak Ave, Anytown, USA' },
-    { id: 3, name: 'Peter Jones', email: 'peter.jones@example.com', role: 'Employee', manager: 'Jane Smith', status: 'Inactive', avatar: '/avatars/avatar-3.png', phone: '081234567892', address: '789 Pine Ln, Anytown, USA' },
-    { id: 4, name: 'Sarah Miller', email: 'sarah.miller@example.com', role: 'Employee', manager: 'Jane Smith', status: 'Active', avatar: '/avatars/avatar-4.png', phone: '081234567893', address: '101 Maple Dr, Anytown, USA' },
-];
+interface UserDetail {
+  id: string;
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+  address: string;
+  photoPath: string | null;
+  role: string;
+  managerId: string | null;
+  baseSalary: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function ViewUser() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const user = users.find((u) => u.id === Number(userId));
+  const location = useLocation();
+  const [user, setUser] = useState<UserDetail | null>(location.state?.user || null);
+  const [managerName, setManagerName] = useState<string>('-');
+  const [loading, setLoading] = useState(!location.state?.user);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      // If we already have user data from state, don't fetch again
+      if (location.state?.user) {
+        // Get manager name if managerId exists
+        if (location.state.user.managerId) {
+          try {
+            const token = localStorage.getItem('token');
+            const managerData = await fetchEndpoint(`/api/users/${location.state.user.managerId}`, 'GET', token);
+            setManagerName(managerData.fullName);
+          } catch (err) {
+            setManagerName('Unknown');
+          }
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise fetch from API
+      if (!userId) return;
+      try {
+        const token = localStorage.getItem('token');
+        const userData = await fetchEndpoint(`/api/users/${userId}`, 'GET', token);
+        setUser(userData);
+
+        // Fetch manager name if managerId exists
+        if (userData.managerId) {
+          try {
+            const managerData = await fetchEndpoint(`/api/users/${userData.managerId}`, 'GET', token);
+            setManagerName(managerData.fullName);
+          } catch (err) {
+            setManagerName('Unknown');
+          }
+        }
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch user');
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [userId, location.state]);
+
+  if (loading) {
+    return (
+      <DashboardLayout currentPage="user-management">
+        <Typography variant="body1" color="text.secondary">Loading...</Typography>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout currentPage="user-management">
+        <Typography variant="h5" color="error">Error: {error}</Typography>
+      </DashboardLayout>
+    );
+  }
 
   if (!user) {
     return (
-      <DashboardLayout>
+      <DashboardLayout currentPage="user-management">
         <Typography variant="h5">User not found</Typography>
       </DashboardLayout>
     );
@@ -45,10 +117,10 @@ export default function ViewUser() {
         <CardContent>
           <Grid container spacing={3}>
             <Grid item xs={12} md={4} sx={{ textAlign: 'center' }}>
-              <Avatar src={user.avatar} sx={{ width: 120, height: 120, margin: 'auto' }} />
-              <Typography variant="h5" mt={2}>{user.name}</Typography>
+              <Avatar src={user.photoPath || undefined} sx={{ width: 120, height: 120, margin: 'auto' }} />
+              <Typography variant="h5" mt={2}>{user.fullName}</Typography>
               <Typography variant="body1" color="text.secondary">{user.email}</Typography>
-              <Chip label={user.status} color={user.status === 'Active' ? 'success' : 'error'} size="small" sx={{ mt: 1 }} />
+              <Chip label={user.role} color="primary" size="small" sx={{ mt: 1 }} />
             </Grid>
             <Grid item xs={12} md={8}>
               <Typography variant="h6" gutterBottom>User Details</Typography>
@@ -60,15 +132,27 @@ export default function ViewUser() {
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <Typography variant="subtitle2" color="text.secondary">Manager</Typography>
-                  <Typography variant="body1">{user.manager}</Typography>
+                  <Typography variant="body1">{managerName}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color="text.secondary">Phone</Typography>
-                  <Typography variant="body1">{user.phone}</Typography>
+                  <Typography variant="subtitle2" color="text.secondary">Email</Typography>
+                  <Typography variant="body1">{user.email}</Typography>
                 </Grid>
                 <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Phone Number</Typography>
+                  <Typography variant="body1">{user.phoneNumber}</Typography>
+                </Grid>
+                <Grid item xs={12}>
                   <Typography variant="subtitle2" color="text.secondary">Address</Typography>
                   <Typography variant="body1">{user.address}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Base Salary</Typography>
+                  <Typography variant="body1">Rp {user.baseSalary.toLocaleString('id-ID')}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Date Joined</Typography>
+                  <Typography variant="body1">{new Date(user.createdAt).toLocaleDateString('id-ID')}</Typography>
                 </Grid>
               </Grid>
             </Grid>

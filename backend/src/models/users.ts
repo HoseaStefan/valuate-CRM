@@ -4,10 +4,10 @@ import {
   Model,
   DataType,
   PrimaryKey,
-  AutoIncrement,
   ForeignKey,
   BelongsTo,
 } from 'sequelize-typescript';
+import { v4 as uuidv4 } from 'uuid';
 
 @Table({
   tableName: 'users',
@@ -15,12 +15,12 @@ import {
 })
 export class User extends Model {
   @PrimaryKey
-  @AutoIncrement
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
+    defaultValue: DataType.UUIDV4,
     allowNull: false,
   })
-  id!: number;
+  id!: string;
 
   @Column({
     type: DataType.STRING,
@@ -66,10 +66,10 @@ export class User extends Model {
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  managerId!: number | null;
+  managerId!: string | null;
 
   @BelongsTo(() => User, 'managerId')
   manager?: User;
