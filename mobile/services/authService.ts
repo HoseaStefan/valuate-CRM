@@ -3,6 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.18.20:3000';
 const API_URL = `${API_BASE_URL}/api`;
+const TOKEN_STORAGE_KEY = process.env.EXPO_PUBLIC_TOKEN_STORAGE_KEY || 'auth_token';
+const LEGACY_TOKEN_KEY = 'userToken';
 
 // Create axios instance with timeout
 const apiClient = axios.create({
@@ -67,7 +69,10 @@ export const authService = {
     try {
       console.log('[Auth] Storing authentication data');
       if (data.token) {
-        await SecureStore.setItemAsync('userToken', data.token);
+        await SecureStore.setItemAsync(TOKEN_STORAGE_KEY, data.token);
+        if (TOKEN_STORAGE_KEY !== LEGACY_TOKEN_KEY) {
+          await SecureStore.setItemAsync(LEGACY_TOKEN_KEY, data.token);
+        }
       }
       if (data.user) {
         await SecureStore.setItemAsync('userData', JSON.stringify(data.user));
@@ -84,7 +89,12 @@ export const authService = {
    */
   async getToken(): Promise<string | null> {
     try {
-      return await SecureStore.getItemAsync('userToken');
+      const token = await SecureStore.getItemAsync(TOKEN_STORAGE_KEY);
+      if (token) return token;
+      if (TOKEN_STORAGE_KEY !== LEGACY_TOKEN_KEY) {
+        return await SecureStore.getItemAsync(LEGACY_TOKEN_KEY);
+      }
+      return null;
     } catch (error) {
       console.error('[Auth] Error getting token:', error);
       return null;
@@ -118,7 +128,10 @@ export const authService = {
   async clearAuth(): Promise<void> {
     try {
       console.log('[Auth] Clearing authentication data');
-      await SecureStore.deleteItemAsync('userToken');
+      await SecureStore.deleteItemAsync(TOKEN_STORAGE_KEY);
+      if (TOKEN_STORAGE_KEY !== LEGACY_TOKEN_KEY) {
+        await SecureStore.deleteItemAsync(LEGACY_TOKEN_KEY);
+      }
       await SecureStore.deleteItemAsync('userData');
     } catch (error) {
       console.error('[Auth] Error clearing auth:', error);

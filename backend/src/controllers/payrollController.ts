@@ -204,3 +204,42 @@ export const updatePayrollStatus = async (
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// User payroll history (mobile list)
+export const getUserPayrollHistory = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { year } = req.query as any;
+    const where: any = { userId };
+
+    if (year) {
+      const parsedYear = Number(year);
+      if (isNaN(parsedYear)) {
+        res.status(400).json({ message: 'Invalid year' });
+        return;
+      }
+      where.year = parsedYear;
+    }
+
+    const payrolls = await Payroll.findAll({
+      where,
+      order: [
+        ['year', 'DESC'],
+        ['createdAt', 'DESC'],
+      ],
+    });
+
+    res.status(200).json(payrolls);
+  } catch (error) {
+    console.error('Error fetching payroll history:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

@@ -266,6 +266,66 @@ export const editRequestLeave = async (
   }
 };
 
+// User's leave history (optional month/year filtering)
+export const getUserLeaveHistory = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { month, year, status, limit } = req.query as any;
+
+    const where: any = { userId };
+    if (status) {
+      where.status = status;
+    }
+
+    if (month || year) {
+      const y = year ? Number(year) : new Date().getFullYear();
+      if (isNaN(y)) {
+        res.status(400).json({ message: 'Invalid year' });
+        return;
+      }
+
+      if (month) {
+        const m = Number(month);
+        if (isNaN(m) || m < 1 || m > 12) {
+          res.status(400).json({ message: 'Invalid month' });
+          return;
+        }
+
+        const monthStart = new Date(y, m - 1, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(y, m, 0, 23, 59, 59, 999);
+        where.startDate = { [Op.lte]: monthEnd };
+        where.endDate = { [Op.gte]: monthStart };
+      } else {
+        const yearStart = new Date(y, 0, 1, 0, 0, 0, 0);
+        const yearEnd = new Date(y, 11, 31, 23, 59, 59, 999);
+        where.startDate = { [Op.lte]: yearEnd };
+        where.endDate = { [Op.gte]: yearStart };
+      }
+    }
+
+    const parsedLimit = limit ? Number(limit) : undefined;
+
+    const leaves = await LeaveRequest.findAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      ...(parsedLimit && parsedLimit > 0 ? { limit: parsedLimit } : {}),
+    });
+
+    res.status(200).json(leaves);
+  } catch (error) {
+    console.error('Error fetching user leave history:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // User's recent leave requests (for dashboard activities)
 export const getUserRecentLeaves = async (
   req: AuthRequest,

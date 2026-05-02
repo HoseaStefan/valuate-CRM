@@ -1,22 +1,12 @@
-import React, { useMemo } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
-
-type LeaveStatus = 'Menunggu' | 'Disetujui' | 'Ditolak';
-
-type LeaveItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  startDate: Date;
-  endDate: Date;
-  status: LeaveStatus;
-};
+import { leaveService, LeaveItem, LeaveStatus } from '@/services/leaveService';
 
 function statusColor(status: LeaveStatus) {
   switch (status) {
@@ -36,36 +26,25 @@ function formatRange(start: Date, end: Date) {
 }
 
 function LeaveScreen() {
-  const data = useMemo<LeaveItem[]>(() => {
-    const now = new Date();
-    const items: LeaveItem[] = [
-      {
-        id: 'l-3',
-        title: 'Pengajuan Cuti',
-        subtitle: 'Cuti Tahunan',
-        startDate: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() + 1)),
-        endDate: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() + 3)),
-        status: 'Menunggu',
-      },
-      {
-        id: 'l-2',
-        title: 'Pengajuan Cuti',
-        subtitle: 'Izin Keperluan Keluarga',
-        startDate: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 10)),
-        endDate: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 9)),
-        status: 'Disetujui',
-      },
-      {
-        id: 'l-1',
-        title: 'Pengajuan Cuti',
-        subtitle: 'Cuti Sakit',
-        startDate: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 20)),
-        endDate: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 18)),
-        status: 'Ditolak',
-      },
-    ];
+  const [data, setData] = useState<LeaveItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-    return items.sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const items = await leaveService.getHistory();
+        const sorted = [...items].sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+        setData(sorted);
+      } catch (error) {
+        console.log('[Leave] Error fetching history:', error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
   }, []);
 
   return (
@@ -89,7 +68,11 @@ function LeaveScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Riwayat Pengajuan</Text>
 
-          {data.length > 0 ? (
+          {loading ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="large" color={ValuateColors.primary} />
+            </View>
+          ) : data.length > 0 ? (
             data.map(item => {
               const color = statusColor(item.status);
               const range = formatRange(item.startDate, item.endDate);
@@ -256,6 +239,11 @@ const styles = StyleSheet.create({
     color: ValuateColors.text.light,
     marginTop: 10,
     textAlign: 'center',
+  },
+  loadingState: {
+    paddingVertical: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

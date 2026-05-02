@@ -5,6 +5,7 @@ import {
   calendarView,
   editRequestLeave,
   getUserRecentLeaves,
+  getUserLeaveHistory,
 } from '../controllers/leaveController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 
@@ -15,6 +16,9 @@ router.use(authMiddleware);
 
 // User's recent leave requests (for dashboard activities)
 router.get('/recent', getUserRecentLeaves);
+
+// User's leave history (mobile history list)
+router.get('/history', getUserLeaveHistory);
 
 // Staff: request leave
 router.post('/', requestLeave);

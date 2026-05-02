@@ -10,7 +10,8 @@ import { useUserContext } from '@/contexts/UserContext';
 import { Image as ExpoImage } from 'expo-image';
 import { FlashList } from '@shopify/flash-list';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
-import * as SecureStore from 'expo-secure-store';
+import { leaveService } from '@/services/leaveService';
+import { reimbursementService } from '@/services/reimbursementService';
 
 function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -39,65 +40,33 @@ function HomeScreen() {
     
     try {
       setActivitiesLoading(true);
-      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      const token = await SecureStore.getItemAsync(process.env.EXPO_PUBLIC_TOKEN_STORAGE_KEY || 'auth_token');
-      
       const activitiesList: any[] = [];
-      
-      // Fetch leave requests
-      try {
-        const leaveResponse = await fetch(`${baseUrl}/api/leave/recent`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (leaveResponse.ok) {
-          const leaveData = await leaveResponse.json();
-          const recentLeaves = (Array.isArray(leaveData) ? leaveData : leaveData.data || [])
-            .slice(0, 5)
-            .map((item: any) => ({
-              id: `leave-${item.id}`,
-              title: 'Pengajuan Cuti',
-              subtitle: `${new Date(item.startDate).toLocaleDateString('id-ID')} - ${new Date(item.endDate).toLocaleDateString('id-ID')}`,
-              status: item.status === 'approved' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : 'Menunggu',
-              type: 'leave',
-              color: item.status === 'approved' ? 'success' : 
-                     item.status === 'rejected' ? 'error' : 'warning',
-            }));
-          activitiesList.push(...recentLeaves);
-        }
-      } catch (error) {
-        console.log('[Dashboard] Error fetching leave requests:', error);
-      }
-      
-      // Fetch reimbursement requests
-      try {
-        const reimburseResponse = await fetch(`${baseUrl}/api/reimbursement/recent`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        
-        if (reimburseResponse.ok) {
-          const reimburseData = await reimburseResponse.json();
-          const recentReimburse = (Array.isArray(reimburseData) ? reimburseData : reimburseData.data || [])
-            .slice(0, 5)
-            .map((item: any) => ({
-              id: `reimburse-${item.id}`,
-              title: `Reimburse ${item.title || 'Lainnya'}`,
-              subtitle: `Rp ${(item.amount || 0).toLocaleString('id-ID')}`,
-              status: item.status === 'approved' ? 'Disetujui' : item.status === 'rejected' ? 'Ditolak' : 'Menunggu',
-              type: 'reimburse',
-              color: item.status === 'approved' ? 'success' : 
-                     item.status === 'rejected' ? 'error' : 'warning',
-            }));
-          activitiesList.push(...recentReimburse);
-        }
-      } catch (error) {
-        console.log('[Dashboard] Error fetching reimbursement requests:', error);
-      }
-      
+
+      const [recentLeaves, recentReimburse] = await Promise.all([
+        leaveService.getRecent(),
+        reimbursementService.getRecent(),
+      ]);
+
+      const leaveActivities = recentLeaves.slice(0, 5).map((item) => ({
+        id: `leave-${item.id}`,
+        title: 'Pengajuan Cuti',
+        subtitle: `${item.startDate.toLocaleDateString('id-ID')} - ${item.endDate.toLocaleDateString('id-ID')}`,
+        status: item.status,
+        type: 'leave',
+        color: item.status === 'Disetujui' ? 'success' : item.status === 'Ditolak' ? 'error' : 'warning',
+      }));
+
+      const reimburseActivities = recentReimburse.slice(0, 5).map((item) => ({
+        id: `reimburse-${item.id}`,
+        title: `Reimburse ${item.title || 'Lainnya'}`,
+        subtitle: `Rp ${item.amount.toLocaleString('id-ID')}`,
+        status: item.status,
+        type: 'reimburse',
+        color: item.status === 'Disetujui' ? 'success' : item.status === 'Ditolak' ? 'error' : 'warning',
+      }));
+
+      activitiesList.push(...leaveActivities, ...reimburseActivities);
+
       // Sort by ID (newest first) - mix of both types
       activitiesList.sort((a, b) => Number(b.id.split('-')[1]) - Number(a.id.split('-')[1]));
       setActivities(activitiesList.slice(0, 6)); // Show max 6 recent activities
@@ -113,20 +82,9 @@ function HomeScreen() {
   const checkPendingRequests = async () => {
     try {
       if (!user?.id) return;
-      const baseUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
-      const token = await SecureStore.getItemAsync(process.env.EXPO_PUBLIC_TOKEN_STORAGE_KEY || 'auth_token');
-      
-      // Check for pending leave requests
-      const leaveResponse = await fetch(`${baseUrl}/api/leave/recent`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      const leaveData = leaveResponse.ok ? await leaveResponse.json() : null;
-      const hasPendingLeave = leaveData && (Array.isArray(leaveData) ? leaveData.some((l: any) => l.status === 'pending') : leaveData.data?.some((l: any) => l.status === 'pending'));
-      
-      setHasPendingRequests(!!hasPendingLeave);
+      const recentLeaves = await leaveService.getRecent();
+      const hasPendingLeave = recentLeaves.some((leave) => leave.status === 'Menunggu');
+      setHasPendingRequests(hasPendingLeave);
     } catch (error) {
       console.log('[Dashboard] Error checking pending requests:', error);
     }
@@ -179,19 +137,10 @@ function HomeScreen() {
     }
   };
 
-  // Dummy data untuk Aktivitas Terbaru (Frontend Design Only)
-  const dummyActivities = [
-    { id: '2', title: 'Pengajuan Cuti', subtitle: '12 Mei - 14 Mei 2026', status: 'Menunggu', type: 'leave', color: ValuateColors.warning },
-    { id: '3', title: 'Reimburse Transport', subtitle: 'Rp 150.000', status: 'Disetujui', type: 'reimburse', color: ValuateColors.primary },
-  ];
-
-  // Use real activities if available, otherwise use dummy
-  const displayActivities = activities.length > 0 
-    ? activities.map((activity: any) => ({
-        ...activity,
-        color: getColorFromString(activity.color),
-      }))
-    : dummyActivities;
+  const displayActivities = activities.map((activity: any) => ({
+    ...activity,
+    color: getColorFromString(activity.color),
+  }));
 
   const dashboardData = [
     { id: 'header', type: 'HEADER' },
