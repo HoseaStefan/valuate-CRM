@@ -200,6 +200,21 @@ function RequestScreen() {
     }).format(amount);
   };
 
+  const formatRequestDate = (value: string) => {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const formatRange = (start?: string, end?: string) => {
+    if (!start || !end) return '-';
+    return `${formatRequestDate(start)} sampai ${formatRequestDate(end)}`;
+  };
+
   const renderRequestItem = ({ item }: { item: StaffRequest }) => {
     const isSelected = selectedRequestId === item.id;
     
@@ -250,7 +265,7 @@ function RequestScreen() {
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Tanggal:</Text>
                 <Text style={styles.detailValue}>
-                  {item.startDate} sampai {item.endDate}
+                  {formatRange(item.startDate, item.endDate)}
                 </Text>
               </View>
             )}
@@ -262,7 +277,7 @@ function RequestScreen() {
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Tanggal Request:</Text>
-              <Text style={styles.detailValue}>{item.requestDate}</Text>
+              <Text style={styles.detailValue}>{formatRequestDate(item.requestDate)}</Text>
             </View>
 
             {item.status === 'Pending' && (

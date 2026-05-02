@@ -107,7 +107,7 @@ export const leaveApproval = async (
 
     const leave = await LeaveRequest.findOne({
       where: { id },
-      include: [User],
+      include: [{ model: User, as: 'user' }],
     });
     if (!leave) {
       res.status(404).json({ message: 'Leave request not found' });

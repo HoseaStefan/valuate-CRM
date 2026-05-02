@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
+import { reimbursementService } from '@/services/reimbursementService';
 
 const TYPES = ['Transport', 'Makan', 'ATK', 'Lainnya'] as const;
 
@@ -35,8 +36,9 @@ function ReimburseFormScreen() {
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [amountDigits, setAmountDigits] = useState('');
   const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     const amount = Number(amountDigits || '0');
 
     if (!type) {
@@ -48,12 +50,28 @@ function ReimburseFormScreen() {
       return;
     }
 
-    Alert.alert('Berhasil', 'Pengajuan reimbursement berhasil dikirim (mock).', [
-      {
-        text: 'OK',
-        onPress: () => router.back(),
-      },
-    ]);
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      await reimbursementService.createReimbursement({
+        title: type,
+        amount,
+        description: description.trim() || undefined,
+        proofPath: 'mobile-form',
+      });
+
+      Alert.alert('Berhasil', 'Pengajuan reimbursement berhasil dikirim.', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error: any) {
+      Alert.alert('Gagal', error?.message || 'Pengajuan reimbursement gagal dikirim.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -110,8 +128,12 @@ function ReimburseFormScreen() {
               textAlignVertical="top"
             />
 
-            <TouchableOpacity style={styles.submitButton} onPress={submit}>
-              <Text style={styles.submitButtonText}>Kirim Pengajuan</Text>
+            <TouchableOpacity style={styles.submitButton} onPress={submit} disabled={submitting}>
+              {submitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.submitButtonText}>Kirim Pengajuan</Text>
+              )}
             </TouchableOpacity>
           </View>
 
