@@ -101,12 +101,12 @@ export const updateReimbursementApproval = async (
       return;
     }
 
-    // Role Hierarchy Authorization
+    // Role Hierarchy Authorization (downstream allowed)
     if (reviewerRole !== 'admin') {
       let isSuperior = false;
       let currentCheckUserId = (reimbursement as any).user.managerId;
 
-      // Check if reviewer acts as their superior
+      // Check if reviewer acts as their superior in the chain
       while (currentCheckUserId) {
         if (currentCheckUserId === reviewerId) {
           isSuperior = true;
@@ -232,6 +232,55 @@ export const getReimbursementRequests = async (
     res.status(200).json(sanitizedRequests);
   } catch (error) {
     console.error('Error retrieving reimbursement requests:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// User's reimbursement history (mobile list)
+export const getUserReimbursementHistory = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { status, startDate, endDate, limit } = req.query as any;
+
+    const whereClause: any = { userId, type: 'reimbursement' };
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (startDate) {
+      whereClause.createdAt = {
+        ...whereClause.createdAt,
+        [Op.gte]: new Date(startDate),
+      };
+    }
+
+    if (endDate) {
+      whereClause.createdAt = {
+        ...whereClause.createdAt,
+        [Op.lte]: new Date(endDate),
+      };
+    }
+
+    const parsedLimit = limit ? Number(limit) : undefined;
+
+    const reimbursements = await PayrollAdjustment.findAll({
+      where: whereClause,
+      order: [['createdAt', 'DESC']],
+      ...(parsedLimit && parsedLimit > 0 ? { limit: parsedLimit } : {}),
+    });
+
+    res.status(200).json(reimbursements);
+  } catch (error) {
+    console.error('Error fetching user reimbursement history:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

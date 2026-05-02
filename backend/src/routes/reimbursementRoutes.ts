@@ -4,6 +4,7 @@ import {
   updateReimbursementApproval,
   getReimbursementRequests,
   getUserRecentReimbursements,
+  getUserReimbursementHistory,
 } from '../controllers/reimbursementController';
 import { authMiddleware } from '../middleware/authMiddleware';
 
@@ -15,6 +16,9 @@ router.use(authMiddleware);
 router.get('/recent', getUserRecentReimbursements);
 
 import { uploadReimbursement } from '../utils/uploadImageMiddleware';
+
+// User reimbursement history (mobile list)
+router.get('/history', getUserReimbursementHistory);
 
 // Mobile Staff requesting reimbursement
 router.post('/', uploadReimbursement.single('proof'), createReimbursement);

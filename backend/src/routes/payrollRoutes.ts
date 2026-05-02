@@ -4,6 +4,7 @@ import {
   calculateMonthlyPayroll,
   getSalarySlip,
   updatePayrollStatus,
+  getUserPayrollHistory,
 } from '../controllers/payrollController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 
@@ -19,5 +20,8 @@ router.post('/calculate', requireRole(['admin']), calculateMonthlyPayroll);
 router.put('/:id/status', requireRole(['admin']), updatePayrollStatus);
 
 router.get('/slip/:month/:year', getSalarySlip);
+
+// User payroll history (mobile list)
+router.get('/history', getUserPayrollHistory);
 
 export default router;

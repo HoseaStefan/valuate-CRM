@@ -1,22 +1,13 @@
-import React, { useMemo } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
-
-type ReimburseStatus = 'Menunggu' | 'Disetujui' | 'Ditolak';
-
-type ReimburseItem = {
-  id: string;
-  title: string;
-  subtitle: string;
-  amount: number;
-  submittedAt: Date;
-  status: ReimburseStatus;
-};
+import { reimbursementService, ReimburseItem, ReimburseStatus } from '@/services/reimbursementService';
 
 function statusColor(status: ReimburseStatus) {
   switch (status) {
@@ -38,38 +29,32 @@ function formatIDR(amount: number) {
 }
 
 function ReimburseScreen() {
-  const data = useMemo<ReimburseItem[]>(() => {
-    const now = new Date();
-    const items: ReimburseItem[] = [
-      {
-        id: 'r-3',
-        title: 'Reimburse Transport',
-        subtitle: 'Kunjungan Proyek',
-        amount: 75000,
-        submittedAt: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 1)),
-        status: 'Disetujui',
-      },
-      {
-        id: 'r-2',
-        title: 'Reimburse Makan',
-        subtitle: 'Lembur',
-        amount: 45000,
-        submittedAt: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 3)),
-        status: 'Menunggu',
-      },
-      {
-        id: 'r-1',
-        title: 'Reimburse ATK',
-        subtitle: 'Pembelian operasional',
-        amount: 120000,
-        submittedAt: new Date(now.getFullYear(), now.getMonth(), Math.max(1, now.getDate() - 7)),
-        status: 'Ditolak',
-      },
-    ];
+  const [data, setData] = useState<ReimburseItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-    // 2. Return variabel yang sudah di-sort
-    return items.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const items = await reimbursementService.getHistory();
+      const sorted = [...items].sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+      setData(sorted);
+    } catch (error) {
+      console.log('[Reimburse] Error fetching history:', error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory();
+    }, [fetchHistory]),
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -90,7 +75,11 @@ function ReimburseScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Riwayat Pengajuan</Text>
 
-          {data.length > 0 ? (
+          {loading ? (
+            <View style={styles.loadingState}>
+              <ActivityIndicator size="large" color={ValuateColors.primary} />
+            </View>
+          ) : data.length > 0 ? (
             data.map(item => {
               const color = statusColor(item.status);
               const dateLabel = item.submittedAt.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -264,6 +253,11 @@ const styles = StyleSheet.create({
     color: ValuateColors.text.light,
     marginTop: 10,
     textAlign: 'center',
+  },
+  loadingState: {
+    paddingVertical: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

@@ -1,11 +1,12 @@
-import React, { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
+import { leaveService } from '@/services/leaveService';
 
 type LeaveSchedule = {
   id: string;
@@ -97,34 +98,8 @@ function LeaveCalendarScreen() {
   // 3. Tanggal default hari ini sudah tertangani oleh inisialisasi ini
   const today = useMemo(() => normalizeDate(new Date()), []);
 
-  const schedules = useMemo<LeaveSchedule[]>(() => {
-    const y = today.getFullYear();
-    const m = today.getMonth();
-
-    return [
-      {
-        id: 's-1',
-        staffName: 'Kamu',
-        leaveType: 'Cuti Tahunan',
-        startDate: new Date(y, m, Math.max(1, today.getDate() + 2)),
-        endDate: new Date(y, m, Math.max(1, today.getDate() + 4)),
-      },
-      {
-        id: 's-2',
-        staffName: 'Budi',
-        leaveType: 'Izin',
-        startDate: new Date(y, m, Math.max(1, today.getDate() + 1)),
-        endDate: new Date(y, m, Math.max(1, today.getDate() + 1)),
-      },
-      {
-        id: 's-3',
-        staffName: 'Siti',
-        leaveType: 'Cuti Sakit',
-        startDate: new Date(y, m, Math.max(1, today.getDate() - 3)),
-        endDate: new Date(y, m, Math.max(1, today.getDate() - 2)),
-      },
-    ].map(s => ({ ...s, startDate: normalizeDate(s.startDate), endDate: normalizeDate(s.endDate) }));
-  }, [today]);
+  const [schedules, setSchedules] = useState<LeaveSchedule[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [currentMonth, setCurrentMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDate, setSelectedDate] = useState<Date>(today); // Default state: Hari ini
@@ -134,6 +109,48 @@ function LeaveCalendarScreen() {
   }, [currentMonth]);
 
   const grid = useMemo(() => buildMonthGrid(currentMonth), [currentMonth]);
+
+  const mapReasonLabel = (reason: string) => {
+    switch (reason) {
+      case 'vacation':
+        return 'Cuti Tahunan';
+      case 'sick leave':
+        return 'Cuti Sakit';
+      case 'personal leave':
+        return 'Izin';
+      default:
+        return 'Cuti Lainnya';
+    }
+  };
+
+  useEffect(() => {
+    const fetchCalendar = async () => {
+      setLoading(true);
+      try {
+        const month = currentMonth.getMonth() + 1;
+        const year = currentMonth.getFullYear();
+        const response = await leaveService.getCalendar({ month, year, all: true });
+        const items = Array.isArray(response?.data) ? response.data : [];
+
+        const mapped = items.map((item) => ({
+          id: `leave-${item.id}`,
+          staffName: item.user?.fullName || 'Staff',
+          leaveType: mapReasonLabel(item.reason),
+          startDate: normalizeDate(new Date(item.startDate)),
+          endDate: normalizeDate(new Date(item.endDate)),
+        }));
+
+        setSchedules(mapped);
+      } catch (error) {
+        console.log('[LeaveCalendar] Error fetching calendar:', error);
+        setSchedules([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCalendar();
+  }, [currentMonth]);
 
   const selectedSchedules = useMemo(() => {
     return schedules
@@ -228,7 +245,11 @@ function LeaveCalendarScreen() {
           <View style={styles.listContainer}>
             <Text style={styles.listDate}>{formatListDate(selectedDate)}</Text>
 
-            {selectedSchedules.length > 0 ? (
+            {loading ? (
+              <View style={styles.loadingState}>
+                <ActivityIndicator size="small" color={ValuateColors.primary} />
+              </View>
+            ) : selectedSchedules.length > 0 ? (
               selectedSchedules.map(s => (
                 <View key={s.id} style={styles.listItem}>
                   <Text style={styles.listName}>{s.staffName}</Text>
@@ -402,6 +423,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: ValuateColors.text.light,
     fontStyle: 'italic',
+  },
+  loadingState: {
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

@@ -107,7 +107,7 @@ export const leaveApproval = async (
 
     const leave = await LeaveRequest.findOne({
       where: { id },
-      include: [User],
+      include: [{ model: User, as: 'user' }],
     });
     if (!leave) {
       res.status(404).json({ message: 'Leave request not found' });
@@ -167,20 +167,24 @@ export const calendarView = async (
       // overlap: startDate <= monthEnd AND endDate >= monthStart
       startDate: { [Op.lte]: monthEnd },
       endDate: { [Op.gte]: monthStart },
+      status: 'approved',
     };
 
     if (requesterRole === 'admin') {
       // admin sees all
-    } else if (allowAll) {
-      // staff explicitly requested all; allow but could be toggled off by policy
     } else {
-      // default: staff see only their own
-      where.userId = requesterId;
+      const hasSubordinates = await User.count({ where: { managerId: requesterId } });
+      if (allowAll || hasSubordinates > 0) {
+        // managers can see all
+      } else {
+        // default: staff see only their own
+        where.userId = requesterId;
+      }
     }
 
     const leaves = await LeaveRequest.findAll({
       where,
-      include: [{ model: User, attributes: ['id', 'fullName', 'role'] }],
+      include: [{ model: User, as: 'user', attributes: ['id', 'fullName', 'role'] }],
     });
     res.status(200).json({
       month: `${year}-${String(month).padStart(2, '0')}`,
@@ -266,6 +270,66 @@ export const editRequestLeave = async (
   }
 };
 
+// User's leave history (optional month/year filtering)
+export const getUserLeaveHistory = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { month, year, status, limit } = req.query as any;
+
+    const where: any = { userId };
+    if (status) {
+      where.status = status;
+    }
+
+    if (month || year) {
+      const y = year ? Number(year) : new Date().getFullYear();
+      if (isNaN(y)) {
+        res.status(400).json({ message: 'Invalid year' });
+        return;
+      }
+
+      if (month) {
+        const m = Number(month);
+        if (isNaN(m) || m < 1 || m > 12) {
+          res.status(400).json({ message: 'Invalid month' });
+          return;
+        }
+
+        const monthStart = new Date(y, m - 1, 1, 0, 0, 0, 0);
+        const monthEnd = new Date(y, m, 0, 23, 59, 59, 999);
+        where.startDate = { [Op.lte]: monthEnd };
+        where.endDate = { [Op.gte]: monthStart };
+      } else {
+        const yearStart = new Date(y, 0, 1, 0, 0, 0, 0);
+        const yearEnd = new Date(y, 11, 31, 23, 59, 59, 999);
+        where.startDate = { [Op.lte]: yearEnd };
+        where.endDate = { [Op.gte]: yearStart };
+      }
+    }
+
+    const parsedLimit = limit ? Number(limit) : undefined;
+
+    const leaves = await LeaveRequest.findAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      ...(parsedLimit && parsedLimit > 0 ? { limit: parsedLimit } : {}),
+    });
+
+    res.status(200).json(leaves);
+  } catch (error) {
+    console.error('Error fetching user leave history:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // User's recent leave requests (for dashboard activities)
 export const getUserRecentLeaves = async (
   req: AuthRequest,
@@ -296,6 +360,61 @@ export const getUserRecentLeaves = async (
     res.status(200).json(leaves);
   } catch (error) {
     console.error('Error fetching user recent leaves:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Manager/Admin: list leave requests from subordinates
+export const getLeaveRequests = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const reviewerId = req.user?.id;
+    const reviewerRole = req.user?.role;
+
+    if (!reviewerId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { status } = req.query as any;
+
+    let targetUserIds: number[] = [];
+
+    if (reviewerRole !== 'admin') {
+      const directSubs = await User.findAll({
+        where: { managerId: reviewerId },
+        attributes: ['id'],
+      });
+
+      if (directSubs.length === 0) {
+        res.status(200).json([]);
+        return;
+      }
+
+      targetUserIds = directSubs.map((u) => u.id);
+    }
+
+    const whereClause: any = {};
+
+    if (reviewerRole !== 'admin') {
+      whereClause.userId = { [Op.in]: targetUserIds };
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    const requests = await LeaveRequest.findAll({
+      where: whereClause,
+      include: [{ model: User, as: 'user', attributes: ['id', 'fullName', 'role'] }],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.status(200).json(requests);
+  } catch (error) {
+    console.error('Error retrieving leave requests:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

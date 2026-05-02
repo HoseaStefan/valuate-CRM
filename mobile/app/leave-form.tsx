@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
+import { leaveService } from '@/services/leaveService';
 
 const TYPES = ['Cuti Tahunan', 'Cuti Sakit', 'Izin'] as const;
 
@@ -51,7 +52,6 @@ function LeaveFormScreen() {
 
   const [startDate, setStartDate] = useState<Date>(today);
   const [endDate, setEndDate] = useState<Date>(today);
-  const [reason, setReason] = useState('');
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<'start' | 'end'>('start');
@@ -60,6 +60,7 @@ function LeaveFormScreen() {
   const [tempDay, setTempDay] = useState<number>(today.getDate());
   const [activeDatePart, setActiveDatePart] = useState<'day' | 'month' | 'year'>('day');
   const [datePartOptionsOpen, setDatePartOptionsOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const years = useMemo(() => {
     const y = today.getFullYear();
@@ -122,7 +123,19 @@ function LeaveFormScreen() {
     setDatePartOptionsOpen(true);
   };
 
-  const submit = () => {
+  const mapReason = (leaveType: LeaveType) => {
+    switch (leaveType) {
+      case 'Cuti Tahunan':
+        return 'vacation';
+      case 'Cuti Sakit':
+        return 'sick leave';
+      case 'Izin':
+      default:
+        return 'personal leave';
+    }
+  };
+
+  const submit = async () => {
     if (!type) {
       Alert.alert('Validasi', 'Pilih jenis cuti.');
       return;
@@ -131,17 +144,28 @@ function LeaveFormScreen() {
       Alert.alert('Validasi', 'Tanggal mulai harus sebelum / sama dengan tanggal selesai.');
       return;
     }
-    if (!reason.trim()) {
-      Alert.alert('Validasi', 'Isi alasan cuti.');
-      return;
-    }
 
-    Alert.alert('Berhasil', 'Pengajuan cuti berhasil dikirim (mock).', [
-      {
-        text: 'OK',
-        onPress: () => router.back(),
-      },
-    ]);
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      await leaveService.createLeave({
+        reason: mapReason(type),
+        startDate: normalizeDate(startDate).toISOString(),
+        endDate: normalizeDate(endDate).toISOString(),
+      });
+
+      Alert.alert('Berhasil', 'Pengajuan cuti berhasil dikirim.', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error: any) {
+      Alert.alert('Gagal', error?.message || 'Pengajuan cuti gagal dikirim.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -179,20 +203,13 @@ function LeaveFormScreen() {
               <IconSymbol name="calendar" size={18} color={ValuateColors.text.secondary} />
             </TouchableOpacity>
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Alasan</Text>
-            <TextInput
-              value={reason}
-              onChangeText={setReason}
-              placeholder="Contoh: urusan keluarga"
-              placeholderTextColor={ValuateColors.text.light}
-              style={[styles.input, styles.multiline]}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
 
-            <TouchableOpacity style={styles.submitButton} onPress={submit}>
-              <Text style={styles.submitButtonText}>Kirim Pengajuan</Text>
+            <TouchableOpacity style={styles.submitButton} onPress={submit} disabled={submitting}>
+              {submitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.submitButtonText}>Kirim Pengajuan</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -400,22 +417,6 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: ValuateColors.text.light,
-  },
-  input: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: ValuateColors.background,
-    borderWidth: 1,
-    borderColor: ValuateColors.border,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    fontWeight: '700',
-    color: ValuateColors.text.primary,
-  },
-  multiline: {
-    height: 120,
-    paddingTop: 12,
-    paddingBottom: 12,
   },
   submitButton: {
     height: 52,

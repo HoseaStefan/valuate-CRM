@@ -7,17 +7,7 @@ import { ValuateColors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { Picker } from '@react-native-picker/picker';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
-
-interface PayrollItem {
-  id: string;
-  month: string;
-  monthNumber: number;
-  year: number;
-  salary: number;
-  deductions: number;
-  netSalary: number;
-  status: 'Processed' | 'Pending' | 'Error';
-}
+import { payrollService, PayrollItem } from '@/services/payrollService';
 
 function PayrollScreen() {
   const router = useRouter();
@@ -44,21 +34,9 @@ function PayrollScreen() {
   const fetchPayrollData = async (year: number) => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${API_URL}/payroll?year=${year}`);
-      // const data = await response.json();
-      
-      // Mock data for demonstration
-      const mockData: PayrollItem[] = [
-        { id: '1', month: 'Januari', monthNumber: 1, year, salary: 5000000, deductions: 500000, netSalary: 4500000, status: 'Processed' },
-        { id: '2', month: 'Februari', monthNumber: 2, year, salary: 5000000, deductions: 500000, netSalary: 4500000, status: 'Processed' },
-        { id: '3', month: 'Maret', monthNumber: 3, year, salary: 5000000, deductions: 500000, netSalary: 4500000, status: 'Processed' },
-        { id: '4', month: 'April', monthNumber: 4, year, salary: 5000000, deductions: 500000, netSalary: 4500000, status: 'Processed' },
-        { id: '5', month: 'Mei', monthNumber: 5, year, salary: 5000000, deductions: 500000, netSalary: 4500000, status: 'Processed' },
-        { id: '6', month: 'Juni', monthNumber: 6, year, salary: 5000000, deductions: 500000, netSalary: 4500000, status: 'Pending' },
-      ];
-      
-      setPayrollData(mockData);
+      const items = await payrollService.getHistory(year);
+      const sorted = [...items].sort((a, b) => b.monthNumber - a.monthNumber);
+      setPayrollData(sorted);
     } catch (error) {
       console.error('Error fetching payroll data:', error);
       setPayrollData([]);

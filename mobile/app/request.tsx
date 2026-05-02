@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -6,6 +6,8 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
+import { useFocusEffect } from '@react-navigation/native';
+import { managerService } from '@/services/managerService';
 
 interface StaffRequest {
   id: string;
@@ -31,6 +33,7 @@ function RequestScreen() {
   const [loading, setLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('Pending');
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [isManager, setIsManager] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -38,6 +41,21 @@ function RequestScreen() {
       router.replace('/login');
     }
   }, [isAuthenticated, authLoading]);
+
+  useEffect(() => {
+    const checkManager = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const status = await managerService.getManagerStatus();
+        setIsManager(status.isManager);
+      } catch (error) {
+        console.log('[Request] Error checking manager status:', error);
+        setIsManager(false);
+      }
+    };
+
+    checkManager();
+  }, [isAuthenticated]);
 
   // Fetch requests on mount
   useEffect(() => {
@@ -53,71 +71,57 @@ function RequestScreen() {
     }
   }, [selectedFilter, requestsData]);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`${API_URL}/requests/manager`);
-      // const data = await response.json();
-      
-      // Mock data for demonstration
-      const mockData: StaffRequest[] = [
-        {
-          id: '1',
-          staffName: 'Budi Santoso',
-          staffID: 'EMP001',
-          type: 'Reimburse',
-          title: 'Reimburse Transport Proyek A',
-          amount: 250000,
-          reason: 'Transport untuk site visit ke lokasi proyek A',
-          status: 'Pending',
-          requestDate: '2026-04-28',
-        },
-        {
-          id: '2',
-          staffName: 'Siti Nurhaliza',
-          staffID: 'EMP002',
-          type: 'Cuti',
-          title: 'Cuti Pribadi',
-          startDate: '2026-05-10',
-          endDate: '2026-05-12',
-          reason: 'Keperluan pribadi',
-          status: 'Pending',
-          requestDate: '2026-04-27',
-        },
-        {
-          id: '3',
-          staffName: 'Ahmad Wijaya',
-          staffID: 'EMP003',
-          type: 'Reimburse',
-          title: 'Reimburse Akomodasi',
-          amount: 500000,
-          reason: 'Menginap untuk meeting klien di kota lain',
-          status: 'Approved',
-          requestDate: '2026-04-26',
-        },
-        {
-          id: '4',
-          staffName: 'Rina Puspita',
-          staffID: 'EMP004',
-          type: 'Cuti',
-          title: 'Cuti Lebaran',
-          startDate: '2026-06-01',
-          endDate: '2026-06-07',
-          reason: 'Cuti lebaran',
-          status: 'Rejected',
-          requestDate: '2026-04-20',
-        },
-      ];
-      
-      setRequestsData(mockData);
+      const [leaveRequests, reimburseRequests] = await Promise.all([
+        managerService.getLeaveRequests(),
+        managerService.getReimbursementRequests(),
+      ]);
+
+      const mappedLeaves: StaffRequest[] = leaveRequests.map((item) => ({
+        id: `leave-${item.id}`,
+        staffName: item.user?.fullName || 'Staff',
+        staffID: `EMP-${item.user?.id ?? item.id}`,
+        type: 'Cuti',
+        title: 'Pengajuan Cuti',
+        startDate: item.startDate,
+        endDate: item.endDate,
+        reason: item.reason,
+        status: item.status === 'approved' ? 'Approved' : item.status === 'rejected' ? 'Rejected' : 'Pending',
+        requestDate: item.createdAt || item.startDate,
+      }));
+
+      const mappedReimburse: StaffRequest[] = reimburseRequests.map((item) => ({
+        id: `reimburse-${item.id}`,
+        staffName: item.user?.fullName || 'Staff',
+        staffID: `EMP-${item.user?.id ?? item.id}`,
+        type: 'Reimburse',
+        title: item.title,
+        amount: Number(item.amount),
+        reason: item.description || 'Reimbursement',
+        status: item.status === 'approved' ? 'Approved' : item.status === 'rejected' ? 'Rejected' : 'Pending',
+        requestDate: item.createdAt,
+      }));
+
+      const merged = [...mappedLeaves, ...mappedReimburse].sort(
+        (a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime(),
+      );
+
+      setRequestsData(merged);
     } catch (error) {
       console.error('Error fetching requests:', error);
       setRequestsData([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRequests();
+    }, [fetchRequests]),
+  );
 
   const handleApprove = async (requestId: string) => {
     Alert.alert('Setujui Request', 'Apakah Anda yakin ingin menyetujui request ini?', [
@@ -126,12 +130,15 @@ function RequestScreen() {
         text: 'Setujui',
         onPress: async () => {
           try {
-            // TODO: Send approval to API
-            // await fetch(`${API_URL}/requests/${requestId}/approve`, { method: 'PUT' });
-            
-            setRequestsData(requestsData.map(req =>
-              req.id === requestId ? { ...req, status: 'Approved' as const } : req
-            ));
+            if (requestId.startsWith('leave-')) {
+              const id = Number(requestId.replace('leave-', ''));
+              await managerService.reviewLeave(id, 'approve');
+            } else {
+              const id = Number(requestId.replace('reimburse-', ''));
+              await managerService.reviewReimbursement(id, 'approved');
+            }
+
+            await fetchRequests();
             setSelectedRequestId(null);
             Alert.alert('Berhasil', 'Request telah disetujui');
           } catch (error) {
@@ -149,12 +156,15 @@ function RequestScreen() {
         text: 'Tolak',
         onPress: async () => {
           try {
-            // TODO: Send rejection to API
-            // await fetch(`${API_URL}/requests/${requestId}/reject`, { method: 'PUT' });
-            
-            setRequestsData(requestsData.map(req =>
-              req.id === requestId ? { ...req, status: 'Rejected' as const } : req
-            ));
+            if (requestId.startsWith('leave-')) {
+              const id = Number(requestId.replace('leave-', ''));
+              await managerService.reviewLeave(id, 'reject', 'Ditolak');
+            } else {
+              const id = Number(requestId.replace('reimburse-', ''));
+              await managerService.reviewReimbursement(id, 'rejected', 'Ditolak');
+            }
+
+            await fetchRequests();
             setSelectedRequestId(null);
             Alert.alert('Berhasil', 'Request telah ditolak');
           } catch (error) {
@@ -188,6 +198,21 @@ function RequestScreen() {
       currency: 'IDR',
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatRequestDate = (value: string) => {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const formatRange = (start?: string, end?: string) => {
+    if (!start || !end) return '-';
+    return `${formatRequestDate(start)} sampai ${formatRequestDate(end)}`;
   };
 
   const renderRequestItem = ({ item }: { item: StaffRequest }) => {
@@ -240,7 +265,7 @@ function RequestScreen() {
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Tanggal:</Text>
                 <Text style={styles.detailValue}>
-                  {item.startDate} sampai {item.endDate}
+                  {formatRange(item.startDate, item.endDate)}
                 </Text>
               </View>
             )}
@@ -252,7 +277,7 @@ function RequestScreen() {
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Tanggal Request:</Text>
-              <Text style={styles.detailValue}>{item.requestDate}</Text>
+              <Text style={styles.detailValue}>{formatRequestDate(item.requestDate)}</Text>
             </View>
 
             {item.status === 'Pending' && (
@@ -281,6 +306,25 @@ function RequestScreen() {
   };
 
   if (authLoading || !isAuthenticated) return null;
+
+  if (!isManager) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <IconSymbol name="chevron.left" size={24} color={ValuateColors.text.primary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Request Staff</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        <View style={styles.emptyState}>
+          <IconSymbol name="lock.fill" size={48} color={ValuateColors.text.light} />
+          <Text style={styles.emptyStateText}>Menu ini hanya untuk manager</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

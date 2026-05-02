@@ -8,6 +8,8 @@ import { useUserContext } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Image as ExpoImage } from 'expo-image';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
+import * as ImagePicker from 'expo-image-picker';
+import { profileService } from '@/services/profileService';
 
 function ProfileScreen() {
   const [showChangePasswordModal, setShowChangePasswordModal] = React.useState(false);
@@ -18,13 +20,29 @@ function ProfileScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
  
 
+  const [editingProfile, setEditingProfile] = React.useState(false);
+  const [savingProfile, setSavingProfile] = React.useState(false);
+  const [fullName, setFullName] = React.useState('');
+  const [phoneNumber, setPhoneNumber] = React.useState('');
+  const [address, setAddress] = React.useState('');
+  const [pendingPhotoUri, setPendingPhotoUri] = React.useState<string | null>(null);
+
   // Get user data from context
   const {
     user,
     detailedUser,
     profileImageUrl,
     updateProfileImage,
+    updateUserProfile,
   } = useUserContext();
+  React.useEffect(() => {
+    if (!editingProfile) return;
+    setFullName(detailedUser?.namaLengkap || user?.fullName || '');
+    setPhoneNumber(user?.phoneNumber || detailedUser?.phoneNumber || '');
+    setAddress(user?.address || detailedUser?.address || '');
+    setPendingPhotoUri(profileImageUrl || null);
+  }, [editingProfile, detailedUser, user, profileImageUrl]);
+
 
   const { logout } = useAuth();
 
@@ -55,6 +73,84 @@ function ProfileScreen() {
     setNewPassword('');
     setConfirmPassword('');
     setShowChangePasswordModal(true);
+  };
+
+  const handleStartEdit = () => {
+    setEditingProfile(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingProfile(false);
+    setPendingPhotoUri(null);
+  };
+
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Izin Diperlukan', 'Akses galeri dibutuhkan untuk memilih foto.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setPendingPhotoUri(result.assets[0].uri);
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Izin Diperlukan', 'Akses kamera dibutuhkan untuk mengambil foto.');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setPendingPhotoUri(result.assets[0].uri);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (savingProfile) return;
+
+    if (!fullName.trim()) {
+      Alert.alert('Error', 'Nama lengkap wajib diisi');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      const payload = {
+        fullName: fullName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        address: address.trim(),
+        photoPath: pendingPhotoUri,
+      };
+
+      await profileService.updateProfile(payload);
+      updateUserProfile(payload);
+
+      if (pendingPhotoUri) {
+        updateProfileImage(pendingPhotoUri);
+      }
+
+      setEditingProfile(false);
+      Alert.alert('Berhasil', 'Profil berhasil diperbarui');
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Gagal memperbarui profil';
+      Alert.alert('Error', msg);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -97,6 +193,9 @@ function ProfileScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Platform.OS === 'ios' ? 100 : 80 }}>
         {/* Profile Info */}
         <View style={styles.profileCard}>
+          <TouchableOpacity style={styles.editButton} onPress={handleStartEdit}>
+            <IconSymbol name="pencil" size={18} color={ValuateColors.text.primary} />
+          </TouchableOpacity>
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
               {profileImageUrl ? (
@@ -116,9 +215,67 @@ function ProfileScreen() {
             </View>
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{detailedUser?.namaLengkap || user?.namaLengkap || 'Loading...'}</Text>
-              <Text style={styles.userEmail}>@{user?.username || 'username'}</Text>
+              <Text style={styles.userEmail}>{user?.email || 'username'}</Text>
             </View>
           </View>
+
+          {editingProfile && (
+            <View style={styles.editSection}>
+              <View style={styles.photoActions}>
+                <TouchableOpacity style={styles.photoButton} onPress={handlePickImage} disabled={savingProfile}>
+                  <IconSymbol name="photo" size={16} color={ValuateColors.text.inverse} />
+                  <Text style={styles.photoButtonText}>Pilih Foto</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.photoButton} onPress={handleTakePhoto} disabled={savingProfile}>
+                  <IconSymbol name="camera" size={16} color={ValuateColors.text.inverse} />
+                  <Text style={styles.photoButtonText}>Ambil Foto</Text>
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.inputLabel}>Nama Lengkap</Text>
+              <TextInput
+                value={fullName}
+                onChangeText={setFullName}
+                style={styles.input}
+                placeholder="Nama lengkap"
+                editable={!savingProfile}
+              />
+
+              <Text style={styles.inputLabel}>Nomor Telepon</Text>
+              <TextInput
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                style={styles.input}
+                placeholder="Nomor telepon"
+                keyboardType="phone-pad"
+                editable={!savingProfile}
+              />
+
+              <Text style={styles.inputLabel}>Alamat</Text>
+              <TextInput
+                value={address}
+                onChangeText={setAddress}
+                style={[styles.input, styles.multilineInput]}
+                placeholder="Alamat"
+                multiline
+                numberOfLines={3}
+                editable={!savingProfile}
+              />
+
+              <View style={styles.editActions}>
+                <TouchableOpacity style={styles.cancelButton} onPress={handleCancelEdit} disabled={savingProfile}>
+                  <Text style={styles.cancelButtonText}>Batal</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile} disabled={savingProfile}>
+                  {savingProfile ? (
+                    <ActivityIndicator color={ValuateColors.text.inverse} />
+                  ) : (
+                    <Text style={styles.saveButtonText}>Simpan</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Account Settings */}
@@ -267,6 +424,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     ...ValuateColors.shadow.medium,
   },
+  editButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: ValuateColors.secondaryBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
   profileHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -301,14 +470,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: ValuateColors.text.secondary,
     marginBottom: 2,
-  },
-  editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: ValuateColors.secondaryBackground,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   settingsCard: {
     backgroundColor: ValuateColors.cardBackground,
@@ -414,6 +575,63 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginBottom: 12,
     backgroundColor: ValuateColors.background,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: ValuateColors.text.secondary,
+    marginBottom: 6,
+  },
+  editSection: {
+    marginTop: 16,
+  },
+  multilineInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  photoActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  photoButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: ValuateColors.primary,
+  },
+  photoButtonText: {
+    color: ValuateColors.text.inverse,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  cancelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: ValuateColors.secondaryBackground,
+  },
+  cancelButtonText: {
+    color: ValuateColors.text.primary,
+    fontWeight: '700',
+  },
+  saveButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: ValuateColors.primary,
+  },
+  saveButtonText: {
+    color: ValuateColors.text.inverse,
+    fontWeight: '700',
   },
   inputContainer: {
     position: 'relative',
