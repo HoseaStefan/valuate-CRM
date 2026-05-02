@@ -12,10 +12,12 @@ import { FlashList } from '@shopify/flash-list';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
 import { leaveService } from '@/services/leaveService';
 import { reimbursementService } from '@/services/reimbursementService';
+import { managerService } from '@/services/managerService';
 
 function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
+  const [isManager, setIsManager] = useState(false);
   const [activities, setActivities] = useState<any[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
   
@@ -29,6 +31,21 @@ function HomeScreen() {
       router.replace('/login');
     }
   }, [isAuthenticated, authLoading]);
+
+  useEffect(() => {
+    const checkManager = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const status = await managerService.getManagerStatus();
+        setIsManager(status.isManager);
+      } catch (error) {
+        console.log('[Dashboard] Error checking manager status:', error);
+        setIsManager(false);
+      }
+    };
+
+    checkManager();
+  }, [isAuthenticated]);
 
   // Fetch activities on mount
   useEffect(() => {
@@ -82,9 +99,17 @@ function HomeScreen() {
   const checkPendingRequests = async () => {
     try {
       if (!user?.id) return;
-      const recentLeaves = await leaveService.getRecent();
-      const hasPendingLeave = recentLeaves.some((leave) => leave.status === 'Menunggu');
-      setHasPendingRequests(hasPendingLeave);
+      if (!isManager) {
+        setHasPendingRequests(false);
+        return;
+      }
+
+      const [leaveRequests, reimburseRequests] = await Promise.all([
+        managerService.getLeaveRequests({ status: 'pending' }),
+        managerService.getReimbursementRequests({ status: 'pending' }),
+      ]);
+
+      setHasPendingRequests(leaveRequests.length > 0 || reimburseRequests.length > 0);
     } catch (error) {
       console.log('[Dashboard] Error checking pending requests:', error);
     }
@@ -92,7 +117,7 @@ function HomeScreen() {
 
   useEffect(() => {
     checkPendingRequests();
-  }, [user?.id]);
+  }, [user?.id, isManager]);
 
   // Prevent back button from going to login
   useFocusEffect(
@@ -175,10 +200,12 @@ function HomeScreen() {
               </View>
             </View>
             
-            <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/request' as any)}>
-              <IconSymbol name="bell.fill" size={24} color={ValuateColors.primary} />
-              {hasPendingRequests && <View style={styles.notificationBadge} />}
-            </TouchableOpacity>
+            {isManager && (
+              <TouchableOpacity style={styles.notificationButton} onPress={() => router.push('/request' as any)}>
+                <IconSymbol name="bell.fill" size={24} color={ValuateColors.primary} />
+                {hasPendingRequests && <View style={styles.notificationBadge} />}
+              </TouchableOpacity>
+            )}
           </View>
           
           <View style={styles.balanceCard}>

@@ -360,3 +360,58 @@ export const getUserRecentLeaves = async (
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+// Manager/Admin: list leave requests from subordinates
+export const getLeaveRequests = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const reviewerId = req.user?.id;
+    const reviewerRole = req.user?.role;
+
+    if (!reviewerId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { status } = req.query as any;
+
+    let targetUserIds: number[] = [];
+
+    if (reviewerRole !== 'admin') {
+      const directSubs = await User.findAll({
+        where: { managerId: reviewerId },
+        attributes: ['id'],
+      });
+
+      if (directSubs.length === 0) {
+        res.status(200).json([]);
+        return;
+      }
+
+      targetUserIds = directSubs.map((u) => u.id);
+    }
+
+    const whereClause: any = {};
+
+    if (reviewerRole !== 'admin') {
+      whereClause.userId = { [Op.in]: targetUserIds };
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    const requests = await LeaveRequest.findAll({
+      where: whereClause,
+      include: [{ model: User, as: 'user', attributes: ['id', 'fullName', 'role'] }],
+      order: [['createdAt', 'DESC']],
+    });
+
+    res.status(200).json(requests);
+  } catch (error) {
+    console.error('Error retrieving leave requests:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

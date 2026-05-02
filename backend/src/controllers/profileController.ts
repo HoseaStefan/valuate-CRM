@@ -35,3 +35,22 @@ export const updateSelfProfile = async (
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const getManagerStatus = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Unauthorized access' });
+      return;
+    }
+
+    const subordinateCount = await User.count({ where: { managerId: userId } });
+    res.json({ isManager: subordinateCount > 0, subordinateCount });
+  } catch (error) {
+    console.error('Error checking manager status:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

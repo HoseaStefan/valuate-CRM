@@ -97,12 +97,12 @@ export const updateReimbursementApproval = async (
       return;
     }
 
-    // Role Hierarchy Authorization
+    // Role Hierarchy Authorization (downstream allowed)
     if (reviewerRole !== 'admin') {
       let isSuperior = false;
       let currentCheckUserId = (reimbursement as any).user.managerId;
 
-      // Check if reviewer acts as their superior
+      // Check if reviewer acts as their superior in the chain
       while (currentCheckUserId) {
         if (currentCheckUserId === reviewerId) {
           isSuperior = true;
