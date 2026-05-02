@@ -49,11 +49,6 @@ export default function DashboardLayout({
   const navigate = useNavigate();
   const { logout, userData } = useAuth();
 
-  const initials = useMemo(() => {
-    const name = userData?.name || userData?.username || 'AD';
-    return name.split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
-  }, [userData]);
-
   const handleLogout = () => {
     logout();
     navigate('/', { replace: true });
@@ -87,9 +82,6 @@ export default function DashboardLayout({
         ))}
       </List>
       <Divider />
-      <Box sx={{ px: 2, py: 1.5 }}>
-        <Typography variant="caption" color="text.secondary">Version 1.0.0</Typography>
-      </Box>
     </Box>
   );
 

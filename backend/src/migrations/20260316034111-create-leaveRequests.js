@@ -12,7 +12,7 @@ module.exports = {
       },
       userId: {
         allowNull: false,
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         references: {
           model: 'users',
           key: 'id',
@@ -42,7 +42,7 @@ module.exports = {
         type: Sequelize.ENUM('pending', 'approved', 'rejected'),
       },
       reviewedBy: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.UUID,
         references: {
           model: 'users',
           key: 'id',
