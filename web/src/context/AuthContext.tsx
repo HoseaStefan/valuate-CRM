@@ -3,10 +3,8 @@ import { fetchEndpoint } from '../fetchEndpoint';
 
 interface User {
   id: string;
-  username: string;
+  fullName: string;
   email: string;
-  profilePicture?: string;
-  name?: string;
   role: string;
 }
 
@@ -14,7 +12,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   userData: User | null;
   token: string | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 

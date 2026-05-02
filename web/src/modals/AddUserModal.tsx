@@ -14,10 +14,12 @@ import {
   type SelectChangeEvent,
 } from '@mui/material';
 
+import { fetchEndpoint } from '../fetchEndpoint';
+
 interface AddUserModalProps {
   open: boolean;
   onClose: () => void;
-  onAddUser: (user: any) => void; // In a real app, define a proper user type
+  onAddUser: (user: any) => void; 
 }
 
 const initialFormState = {
@@ -44,41 +46,20 @@ export default function AddUserModal({ open, onClose, onAddUser }: AddUserModalP
     setFormData(prev => ({ ...prev, [name]: value }));
   }
 
-  const handleSubmit = async () => {
-    // TODO: Uncomment this block to integrate with the API
-    /*
+  const handleSubmit = async () => {    
     try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Add authorization token if needed
-          // 'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          baseSalary: parseFloat(formData.baseSalary) || 0,
-        }),
-      });
+      const token = localStorage.getItem('token');
 
-      if (!response.ok) {
-        throw new Error('Failed to add user');
-      }
+      const userData = {...formData, baseSalary: parseFloat(formData.baseSalary) || 0 };
+      const response = await fetchEndpoint('/api/users', 'POST', token, userData);
 
-      const newUser = await response.json();
-      onAddUser(newUser); // Pass the new user from the API response
-      handleClose();
-
+      onAddUser(response); // Pass the new user from the API response
+      setFormData(initialFormState); 
+      onClose(); 
     } catch (error) {
-      console.error('Error adding user:', error);
-      // TODO: Show an error message to the user
-    }
-    */
+      alert('Fail to add user: ' + (error instanceof Error ? error.message : 'Unknown error'));
 
-    // For now, we'll use the mock logic
-    console.log('New User Data:', formData);
-    onAddUser(formData);
-    handleClose();
+    }
   };
 
   const handleClose = () => {
@@ -115,6 +96,28 @@ export default function AddUserModal({ open, onClose, onAddUser }: AddUserModalP
           <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
+              label="Phone Number"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              required
+            />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label="Address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              required
+              multiline
+              rows={2}
+            />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
               label="Password"
               name="password"
               type="password"
@@ -128,10 +131,21 @@ export default function AddUserModal({ open, onClose, onAddUser }: AddUserModalP
               <InputLabel>Role</InputLabel>
               <Select label="Role" name="role" value={formData.role} onChange={handleSelectChange}>
                 <MenuItem value="admin">Admin</MenuItem>
-                <MenuItem value="manager">Manager</MenuItem>
-                <MenuItem value="employee">Employee</MenuItem>
+                <MenuItem value="staff">Staff</MenuItem>
               </Select>
             </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label="Base Salary"
+              name="baseSalary"
+              type="number"
+              value={formData.baseSalary}
+              onChange={handleChange}
+              required
+              inputProps={{ step: '0.01', min: '0' }}
+            />
           </Grid>
         </Grid>
       </DialogContent>

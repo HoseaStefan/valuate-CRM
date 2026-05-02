@@ -12,6 +12,7 @@ import AddSalary from './View/AddSalary';
 import LeaveManagement from './View/LeaveManagement';
 import Attendance from './View/Attendance';
 import UserTree from './View/UserTree';
+import ProtectedRoute from './component/ProtectedRoute';
 // import Payroll from './View/Payroll';
 
 function AppContent() {
@@ -21,16 +22,16 @@ function AppContent() {
                 <Routes>
                     <Route path="/" element={<LoginModal />} />
                     <Route path="/forgot-password" element={<ForgotPasswordModal />} />
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/user-management" element={<UserManagement />} />
-                    <Route path="/user/:userId" element={<ViewUser />} />
-                    <Route path="/user/:userId/edit" element={<EditUser />} />
-                    <Route path="/user/:userId/assign-manager" element={<AssignManager />} />
-                    <Route path="/user/:userId/add-salary" element={<AddSalary />} />
-                    <Route path="/leave-management" element={<LeaveManagement />} />
-                    <Route path="/attendance" element={<Attendance />} />
-                    <Route path="/tree-management" element={<UserTree />} />
-                    {/* <Route path="/payroll" element={<Payroll />} /> */}
+                    <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                    <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+                    <Route path="/user/:userId" element={<ProtectedRoute><ViewUser /></ProtectedRoute>} />
+                    <Route path="/user/:userId/edit" element={<ProtectedRoute><EditUser /></ProtectedRoute>} />
+                    <Route path="/user/:userId/assign-manager" element={<ProtectedRoute><AssignManager /></ProtectedRoute>} />
+                    <Route path="/user/:userId/add-salary" element={<ProtectedRoute><AddSalary /></ProtectedRoute>} />
+                    <Route path="/leave-management" element={<ProtectedRoute><LeaveManagement /></ProtectedRoute>} />
+                    <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+                    <Route path="/tree-management" element={<ProtectedRoute><UserTree /></ProtectedRoute>} />
+                    {/* <Route path="/payroll" element={<ProtectedRoute><Payroll /></ProtectedRoute>} /> */}
                     <Route path="*" element={<NotFound />} />
                 </Routes>
             </div>

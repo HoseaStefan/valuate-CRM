@@ -1,6 +1,7 @@
 'use strict';
 
 const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
@@ -10,12 +11,19 @@ module.exports = {
     // hash default password once
     const hashedPassword = await bcrypt.hash('pass123', 10);
 
+    // Generate consistent UUIDs for manager hierarchy
+    const adminId = '11111111-1111-1111-1111-111111111111';
+    const directorId = '22222222-2222-2222-2222-222222222222';
+    const manager1Id = '33333333-3333-3333-3333-333333333333';
+    const manager2Id = '44444444-4444-4444-4444-444444444444';
+    const manager3Id = '55555555-5555-5555-5555-555555555555';
+
     await queryInterface.bulkInsert(
       'users',
       [
         // ADMIN (not in manager tree)
         {
-          id: 1,
+          id: adminId,
           email: 'admin@valuate.com',
           password: hashedPassword,
           fullName: 'Admin User',
@@ -31,7 +39,7 @@ module.exports = {
 
         // STAFF LEVEL 1 (top manager staff)
         {
-          id: 2,
+          id: directorId,
           email: 'dir@valuate.com',
           password: hashedPassword,
           fullName: 'Director Staff',
@@ -47,7 +55,7 @@ module.exports = {
 
         // STAFF LEVEL 2 (managers under director)
         {
-          id: 3,
+          id: manager1Id,
           email: 'm1@valuate.com',
           password: hashedPassword,
           fullName: 'Manager One',
@@ -56,12 +64,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 14000000,
-          managerId: 2,
+          managerId: directorId,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 4,
+          id: manager2Id,
           email: 'm2@valuate.com',
           password: hashedPassword,
           fullName: 'Manager Two',
@@ -70,12 +78,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 14000000,
-          managerId: 2,
+          managerId: directorId,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 5,
+          id: manager3Id,
           email: 'm3@valuate.com',
           password: hashedPassword,
           fullName: 'Manager Three',
@@ -84,14 +92,14 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 14000000,
-          managerId: 2,
+          managerId: directorId,
           createdAt: now,
           updatedAt: now,
         },
 
         // STAFF LEVEL 3 under manager1
         {
-          id: 6,
+          id: uuidv4(),
           email: 's01@valuate.com',
           password: hashedPassword,
           fullName: 'Staff One',
@@ -100,12 +108,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 8000000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 7,
+          id: uuidv4(),
           email: 's02@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Two',
@@ -114,12 +122,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7800000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 8,
+          id: uuidv4(),
           email: 's03@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Three',
@@ -128,12 +136,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7600000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 9,
+          id: uuidv4(),
           email: 's04@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Four',
@@ -142,12 +150,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7400000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 10,
+          id: uuidv4(),
           email: 's05@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Five',
@@ -156,12 +164,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7200000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 11,
+          id: uuidv4(),
           email: 's06@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Six',
@@ -170,14 +178,14 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7000000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
 
         // STAFF LEVEL 3 under manager2
         {
-          id: 12,
+          id: uuidv4(),
           email: 's07@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Seven',
@@ -186,12 +194,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 8200000,
-          managerId: 4,
+          managerId: manager2Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 13,
+          id: uuidv4(),
           email: 's08@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Eight',
@@ -200,12 +208,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7900000,
-          managerId: 4,
+          managerId: manager2Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 14,
+          id: uuidv4(),
           email: 's09@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Nine',
@@ -214,12 +222,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7700000,
-          managerId: 4,
+          managerId: manager2Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 15,
+          id: uuidv4(),
           email: 's10@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Ten',
@@ -228,12 +236,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7500000,
-          managerId: 4,
+          managerId: manager2Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 16,
+          id: uuidv4(),
           email: 's11@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Eleven',
@@ -242,12 +250,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7300000,
-          managerId: 4,
+          managerId: manager2Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 17,
+          id: uuidv4(),
           email: 's12@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Twelve',
@@ -256,14 +264,14 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7100000,
-          managerId: 4,
+          managerId: manager2Id,
           createdAt: now,
           updatedAt: now,
         },
 
         // STAFF LEVEL 3 under manager3
         {
-          id: 18,
+          id: uuidv4(),
           email: 's13@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Thirteen',
@@ -272,12 +280,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 8100000,
-          managerId: 5,
+          managerId: manager3Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 19,
+          id: uuidv4(),
           email: 's14@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Fourteen',
@@ -286,12 +294,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7800000,
-          managerId: 5,
+          managerId: manager3Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 20,
+          id: uuidv4(),
           email: 's15@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Fifteen',
@@ -300,12 +308,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7600000,
-          managerId: 5,
+          managerId: manager3Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 21,
+          id: uuidv4(),
           email: 's16@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Sixteen',
@@ -314,14 +322,14 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7400000,
-          managerId: 5,
+          managerId: manager3Id,
           createdAt: now,
           updatedAt: now,
         },
 
         // Extra staff under manager1 (to make staff total = 20)
         {
-          id: 22,
+          id: uuidv4(),
           email: 's17@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Seventeen',
@@ -330,12 +338,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7300000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 23,
+          id: uuidv4(),
           email: 's18@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Eighteen',
@@ -344,12 +352,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7200000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 24,
+          id: uuidv4(),
           email: 's19@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Nineteen',
@@ -358,12 +366,12 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7100000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },
         {
-          id: 25,
+          id: uuidv4(),
           email: 's20@valuate.com',
           password: hashedPassword,
           fullName: 'Staff Twenty',
@@ -372,7 +380,7 @@ module.exports = {
           photoPath: null,
           role: 'staff',
           baseSalary: 7000000,
-          managerId: 3,
+          managerId: manager1Id,
           createdAt: now,
           updatedAt: now,
         },

@@ -93,10 +93,12 @@ export const getUserById = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = req.params.id;
 
-    if (isNaN(id)) {
-      res.status(400).json({ message: 'Invalid user ID' });
+    // Basic UUID validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      res.status(400).json({ message: 'Invalid user ID format' });
       return;
     }
 
@@ -105,14 +107,13 @@ export const getUserById = async (
       attributes: [
         'id',
         'email',
-        'username',
-        'namaLengkap',
-        'nomorTelepon',
-        'alamat',
-        'fotoPath',
+        'fullName',
+        'phoneNumber',
+        'address',
+        'photoPath',
         'role',
         'managerId',
-        'gajiPokok',
+        'baseSalary',
         'createdAt',
         'updatedAt',
       ],
@@ -135,10 +136,12 @@ export const updateUser = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = req.params.id;
 
-    if (isNaN(id)) {
-      res.status(400).json({ message: 'Invalid user ID' });
+    // Basic UUID validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      res.status(400).json({ message: 'Invalid user ID format' });
       return;
     }
 
@@ -189,10 +192,12 @@ export const deleteUser = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const id = parseInt(req.params.id, 10);
+    const id = req.params.id;
 
-    if (isNaN(id)) {
-      res.status(400).json({ message: 'Invalid user ID' });
+    // Basic UUID validation
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      res.status(400).json({ message: 'Invalid user ID format' });
       return;
     }
 
