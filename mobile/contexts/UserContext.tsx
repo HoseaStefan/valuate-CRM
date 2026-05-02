@@ -8,6 +8,7 @@ type UserContextType = {
   loading: boolean;
   refreshUserData: (force?: boolean) => Promise<void>;
   updateProfileImage: (url: string) => void;
+  updateUserProfile: (profile: { fullName?: string; phoneNumber?: string; address?: string; photoPath?: string | null }) => void;
 };
 
 const UserContext = createContext<UserContextType>({
@@ -17,6 +18,7 @@ const UserContext = createContext<UserContextType>({
   loading: false,
   refreshUserData: async () => {},
   updateProfileImage: () => {},
+  updateUserProfile: () => {},
 });
 
 export const UserProvider = ({ children }: { children: React.ReactNode }) => {
@@ -50,8 +52,25 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     setProfileImageUrl(url);
   };
 
+  const updateUserProfile = (profile: { fullName?: string; phoneNumber?: string; address?: string; photoPath?: string | null }) => {
+    setUser((prev: any) => ({
+      ...prev,
+      ...profile,
+    }));
+
+    setDetailedUser((prev: any) => ({
+      ...prev,
+      ...profile,
+      namaLengkap: profile.fullName || prev?.namaLengkap,
+    }));
+
+    if (profile.photoPath !== undefined) {
+      setProfileImageUrl(profile.photoPath || null);
+    }
+  };
+
   return (
-    <UserContext.Provider value={{ user, detailedUser, profileImageUrl, loading, refreshUserData, updateProfileImage }}>
+    <UserContext.Provider value={{ user, detailedUser, profileImageUrl, loading, refreshUserData, updateProfileImage, updateUserProfile }}>
       {children}
     </UserContext.Provider>
   );
