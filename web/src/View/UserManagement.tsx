@@ -118,16 +118,30 @@ export default function UserManagement() {
     setSelectedUserId(null);
   };
 
-  const handleViewDetail = () => {
+  const handleViewDetail = async () => {
     if (selectedUserId) {
-      navigate(`/user/${selectedUserId}`);
+      try {
+        const token = localStorage.getItem('token');
+        const user = await fetchEndpoint(`/api/users/${selectedUserId}`, 'GET', token);
+        navigate(`/user/${selectedUserId}`, { state: { user } });
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+        alert('Failed to fetch user details: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
     }
     handleActionClose();
   };
 
-  const handleEditUser = () => {
+  const handleEditUser = async () => {
     if (selectedUserId) {
-      navigate(`/user/${selectedUserId}/edit`);
+      try {
+        const token = localStorage.getItem('token');
+        const user = await fetchEndpoint(`/api/users/${selectedUserId}`, 'GET', token);
+        navigate(`/user/${selectedUserId}/edit`, { state: { user } });
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+        alert('Failed to fetch user details: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      }
     }
     handleActionClose();
   };
