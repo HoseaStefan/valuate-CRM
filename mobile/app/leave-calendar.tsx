@@ -129,7 +129,7 @@ function LeaveCalendarScreen() {
       try {
         const month = currentMonth.getMonth() + 1;
         const year = currentMonth.getFullYear();
-        const response = await leaveService.getCalendar({ month, year });
+        const response = await leaveService.getCalendar({ month, year, all: true });
         const items = Array.isArray(response?.data) ? response.data : [];
 
         const mapped = items.map((item) => ({

@@ -172,11 +172,14 @@ export const calendarView = async (
 
     if (requesterRole === 'admin') {
       // admin sees all
-    } else if (allowAll) {
-      // staff explicitly requested all; allow but could be toggled off by policy
     } else {
-      // default: staff see only their own
-      where.userId = requesterId;
+      const hasSubordinates = await User.count({ where: { managerId: requesterId } });
+      if (allowAll || hasSubordinates > 0) {
+        // managers can see all
+      } else {
+        // default: staff see only their own
+        where.userId = requesterId;
+      }
     }
 
     const leaves = await LeaveRequest.findAll({
