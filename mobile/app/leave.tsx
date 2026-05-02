@@ -34,7 +34,7 @@ function LeaveScreen() {
     setLoading(true);
     try {
       const items = await leaveService.getHistory();
-      const sorted = [...items].sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+      const sorted = [...items].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       setData(sorted);
     } catch (error) {
       console.log('[Leave] Error fetching history:', error);

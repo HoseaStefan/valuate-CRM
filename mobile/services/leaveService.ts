@@ -8,6 +8,7 @@ export type LeaveItem = {
   subtitle: string;
   startDate: Date;
   endDate: Date;
+  createdAt: Date;
   status: LeaveStatus;
 };
 
@@ -63,6 +64,7 @@ export const leaveService = {
       subtitle: mapReason(item.reason),
       startDate: new Date(item.startDate),
       endDate: new Date(item.endDate),
+      createdAt: new Date(item.createdAt || item.startDate),
       status: mapStatus(item.status),
     }));
   },
@@ -79,6 +81,7 @@ export const leaveService = {
       subtitle: mapReason(item.reason),
       startDate: new Date(item.startDate),
       endDate: new Date(item.endDate),
+      createdAt: new Date(item.createdAt || item.startDate),
       status: mapStatus(item.status),
     }));
   },
