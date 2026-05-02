@@ -1,45 +1,42 @@
-// Plastik-HB-BE/middleware/uploadImageMiddleware.ts
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { Request } from 'express';
+import { AuthRequest } from '../middleware/authMiddleware';
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../uploads');
+// Pastikan direktori upload ada
+const uploadDir = path.join(__dirname, '../../uploads/reimbursements');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Storage configuration
 const storage = multer.diskStorage({
-  destination: (req: Request, file: Express.Multer.File, cb) => {
-    cb(null, uploadDir); // Simpan di folder uploads/products
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
   },
-  filename: (req: Request, file: Express.Multer.File, cb) => {
-    // Generate unique filename
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+  filename: (req: AuthRequest, file, cb) => {
+    // Format: TIMESTAMP_NAMA USER_REIMBURSEMENT TYPE
+    const timestamp = Date.now();
+    
+    const fullName = req.user?.fullName ? req.user.fullName.replace(/\s+/g, '_') : 'Unknown_User';
+    
+    const type = 'Reimbursement';
     const ext = path.extname(file.originalname);
-    cb(null, `product-${uniqueSuffix}${ext}`);
+    
+    const newFilename = `${timestamp}_${fullName}_${type}${ext}`;
+    cb(null, newFilename);
   },
 });
 
-// File filter untuk hanya menerima gambar
-const fileFilter = (req: Request, file: Express.Multer.File, cb: any) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
+export const uploadReimbursement = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit 5MB
+  fileFilter: (req, file, cb) => {
+    // Hanya izinkan gambar
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format file tidak didukung. Harap upload gambar (JPG/PNG).'));
+    }
   }
-};
-
-// Multer configuration
-export const uploadProduct = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
 });
-
-// Middleware untuk multiple images (max 8: 1 main + 7 additional)
-export const uploadProductImages = uploadProduct.array('images', 8);

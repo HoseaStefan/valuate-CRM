@@ -14,8 +14,10 @@ router.use(authMiddleware);
 // User's recent reimbursements (for dashboard activities)
 router.get('/recent', getUserRecentReimbursements);
 
+import { uploadReimbursement } from '../utils/uploadImageMiddleware';
+
 // Mobile Staff requesting reimbursement
-router.post('/', createReimbursement);
+router.post('/', uploadReimbursement.single('proof'), createReimbursement);
 
 // Web/Mobile Admin & Managers evaluating the submission
 router.put('/:id/review', updateReimbursementApproval);

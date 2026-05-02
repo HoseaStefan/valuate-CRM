@@ -5,11 +5,13 @@ export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authMiddleware = (
+import { User } from '../models/users';
+
+export const authMiddleware = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
-): void => {
+): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -20,8 +22,14 @@ export const authMiddleware = (
     const token = authHeader.split(' ')[1];
     const secret = process.env.JWT_SECRET || 'super-secret-key';
 
-    const decoded = jwt.verify(token, secret);
-    req.user = decoded;
+    const decoded = jwt.verify(token, secret) as any;
+    
+    // Fetch user to get fullName for file uploads and other needs
+    const user = await User.findByPk(decoded.id);
+    req.user = {
+      ...decoded,
+      fullName: user?.fullName || 'UnknownUser',
+    };
 
     next();
   } catch (error) {

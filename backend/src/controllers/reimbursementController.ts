@@ -10,27 +10,31 @@ export const createReimbursement = async (
 ): Promise<void> => {
   try {
     const userId = req.user?.id;
-    const { title, amount, description, proofPath } = req.body;
+    const { title, amount, description } = req.body;
 
     // Validate inputs
-    if (!title || typeof amount !== 'number' || Math.abs(amount) <= 0) {
+    const amountNum = typeof amount === 'string' ? parseFloat(amount) : amount;
+    
+    if (!title || typeof amountNum !== 'number' || isNaN(amountNum) || Math.abs(amountNum) <= 0) {
       res.status(400).json({
         message: 'Title and a valid positive mathematical amount are required',
       });
       return;
     }
 
-    // Check Proof Path
-    if (!proofPath) {
-      res.status(400).json({ message: 'Proof path is required' });
+    // Check Proof Path from uploaded file
+    if (!req.file) {
+      res.status(400).json({ message: 'Proof file is required' });
       return;
     }
+    
+    const proofPath = `/uploads/reimbursements/${req.file.filename}`;
 
     const newReimbursement = await PayrollAdjustment.create({
       userId,
       title,
       type: 'reimbursement',
-      amount: Math.abs(amount),
+      amount: Math.abs(amountNum),
       description: description || null,
       proofPath: proofPath,
       status: 'pending',
