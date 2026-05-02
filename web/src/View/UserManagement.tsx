@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Avatar,
   Box,
@@ -30,27 +30,85 @@ import AddIcon from '@mui/icons-material/Add';
 import DashboardLayout from '../component/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import AddUserModal from '../modals/AddUserModal';
+import { fetchEndpoint } from '../fetchEndpoint';
 
-// Mock data
-const users = [
-  { id: 1, name: 'John Doe', email: 'john.doe@example.com', role: 'Manager', manager: 'System', status: 'Active', avatar: '/avatars/avatar-1.png' },
-  { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Manager', manager: 'John Doe', status: 'Active', avatar: '/avatars/avatar-2.png' },
-  { id: 3, name: 'Peter Jones', email: 'peter.jones@example.com', role: 'Staff', manager: 'Jane Smith', status: 'Inactive', avatar: '/avatars/avatar-3.png' },
-  { id: 4, name: 'Sarah Miller', email: 'sarah.miller@example.com', role: 'Staff', manager: 'Jane Smith', status: 'Active', avatar: '/avatars/avatar-4.png' },
-];
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  manager: string | null;
+  status: string;
+  avatar: string;
+  fullName?: string;
+  managerId?: string | null;
+  photoPath?: string | null;
+}
 
 type Order = 'asc' | 'desc';
 
 export default function UserManagement() {
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userList, setUserList] = useState(users);
+  const [userList, setUserList] = useState<User[]>([]);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedUserId, setSelectedUserId] = useState<null | number>(null);
+  const [selectedUserId, setSelectedUserId] = useState<null | string>(null);
   const [order, setOrder] = useState<Order>('asc');
-  const [orderBy, setOrderBy] = useState<keyof (typeof users)[0]>('name');
+  const [orderBy, setOrderBy] = useState<string>('name');
+  const [loading, setLoading] = useState(true);
+  const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
 
-  const handleActionClick = (event: React.MouseEvent<HTMLElement>, userId: number) => {
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetchEndpoint('/api/users', 'GET', token);
+        
+        // Create a map for quick lookup
+        const userMapTemp = new Map<string, User>();
+        
+        // Transform backend data to frontend format
+        const transformedUsers = response.map((user: any) => {
+          const transformed: User = {
+            id: user.id,
+            name: user.fullName,
+            email: user.email,
+            role: user.role,
+            manager: user.managerId ? null : null, // Will be populated after map creation
+            status: 'Active',
+            avatar: user.photoPath || `/avatars/avatar-${Math.floor(Math.random() * 5) + 1}.png`,
+            fullName: user.fullName,
+            managerId: user.managerId,
+            photoPath: user.photoPath,
+          };
+          return transformed;
+        });
+        
+        // Build user map for manager name lookup
+        transformedUsers.forEach(user => {
+          userMapTemp.set(user.id, user);
+        });
+        
+        // Now populate manager names
+        const finalUsers = transformedUsers.map(user => ({
+          ...user,
+          manager: user.managerId ? (userMapTemp.get(user.managerId)?.name || 'Unknown') : '-',
+        }));
+        
+        setUserList(finalUsers);
+        setUsersMap(userMapTemp);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  const handleActionClick = (event: React.MouseEvent<HTMLElement>, userId: string) => {
     setAnchorEl(event.currentTarget);
     setSelectedUserId(userId);
   };
@@ -89,9 +147,20 @@ export default function UserManagement() {
   };
 
   const handleAddUser = (newUser: any) => {
-    // In a real app, you would get the new user object from the API response
-    const userWithId = { ...newUser, id: userList.length + 1, status: 'Active', avatar: `/avatars/avatar-${(userList.length % 5) + 1}.png` };
-    setUserList(prev => [...prev, userWithId]);
+    // Transform the API response to frontend format
+    const transformedUser: User = {
+      id: newUser.id,
+      name: newUser.fullName,
+      email: newUser.email,
+      role: newUser.role,
+      manager: newUser.managerId ? (usersMap.get(newUser.managerId)?.name || 'Unknown') : '-',
+      status: 'Active',
+      avatar: newUser.photoPath || `/avatars/avatar-${Math.floor(Math.random() * 5) + 1}.png`,
+      fullName: newUser.fullName,
+      managerId: newUser.managerId,
+      photoPath: newUser.photoPath,
+    };
+    setUserList(prev => [...prev, transformedUser]);
   };
 
   const handleSort = (property: keyof (typeof users)[0]) => {
@@ -133,8 +202,8 @@ export default function UserManagement() {
             <InputLabel>Role</InputLabel>
             <Select label="Role" defaultValue="">
               <MenuItem value="">All</MenuItem>
-              <MenuItem value="Staff">Staff</MenuItem>
-              <MenuItem value="Admin">Admin</MenuItem>
+              <MenuItem value="staff">Staff</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
             </Select>
           </FormControl>
           <Button variant="outlined" sx={{ flexShrink: 0 }}>Reset</Button>

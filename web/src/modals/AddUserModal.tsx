@@ -29,7 +29,7 @@ const initialFormState = {
   phoneNumber: '',
   address: '',
   baseSalary: '',
-  role: 'Employee',
+  role: 'staff',
 };
 
 export default function AddUserModal({ open, onClose, onAddUser }: AddUserModalProps) {
