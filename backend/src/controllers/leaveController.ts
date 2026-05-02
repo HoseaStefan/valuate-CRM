@@ -167,6 +167,7 @@ export const calendarView = async (
       // overlap: startDate <= monthEnd AND endDate >= monthStart
       startDate: { [Op.lte]: monthEnd },
       endDate: { [Op.gte]: monthStart },
+      status: 'approved',
     };
 
     if (requesterRole === 'admin') {
