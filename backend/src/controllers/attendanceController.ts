@@ -112,8 +112,8 @@ export const generateQR = async (
 ): Promise<void> => {
   console.log("Generating QR for user", req.user?.id);
   try {
-    const { qrImageUrl, payload } = generateAttendanceQRCode();
-    res.status(200).json({ qrImageUrl, payload });
+    const { qrImageUrl } = generateAttendanceQRCode();
+    res.status(200).json({ qrImageUrl });
     
   } catch (error) {
     console.error('Error generating QR:', error);

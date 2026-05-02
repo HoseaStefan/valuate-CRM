@@ -14,7 +14,7 @@ export const createReimbursement = async (
 
     // Validate inputs
     const amountNum = typeof amount === 'string' ? parseFloat(amount) : amount;
-    
+
     if (!title || typeof amountNum !== 'number' || isNaN(amountNum) || Math.abs(amountNum) <= 0) {
       res.status(400).json({
         message: 'Title and a valid positive mathematical amount are required',
@@ -27,7 +27,7 @@ export const createReimbursement = async (
       res.status(400).json({ message: 'Proof file is required' });
       return;
     }
-    
+
     const proofPath = `/uploads/reimbursements/${req.file.filename}`;
 
     const newReimbursement = await PayrollAdjustment.create({
@@ -314,6 +314,96 @@ export const getUserRecentReimbursements = async (
     res.status(200).json(reimbursements);
   } catch (error) {
     console.error('Error fetching user recent reimbursements:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Admin-only: edit a reimbursement request
+export const editReimbursementRequest = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const requesterRole = req.user?.role;
+    if (requesterRole !== 'admin') {
+      res
+        .status(403)
+        .json({ message: 'Forbidden: only admin can edit reimbursement requests' });
+      return;
+    }
+
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({ message: 'Invalid request id' });
+      return;
+    }
+
+    const { title, amount, description, status } = req.body as any;
+    const reimbursement = await PayrollAdjustment.findOne({ where: { id, type: 'reimbursement' } });
+
+    if (!reimbursement) {
+      res.status(404).json({ message: 'Reimbursement request not found' });
+      return;
+    }
+
+    if (title !== undefined) reimbursement.title = title;
+    if (amount !== undefined) {
+      const amountNum = typeof amount === 'string' ? parseFloat(amount) : amount;
+      if (typeof amountNum === 'number' && !isNaN(amountNum) && Math.abs(amountNum) > 0) {
+        reimbursement.amount = String(Math.abs(amountNum));
+      } else {
+        res.status(400).json({ message: 'Invalid amount' });
+        return;
+      }
+    }
+    if (description !== undefined) reimbursement.description = description;
+
+    if (status !== undefined) {
+      if (!['pending', 'approved', 'rejected'].includes(status)) {
+        res.status(400).json({ message: 'Invalid status' });
+        return;
+      }
+      reimbursement.status = status;
+    }
+
+    await reimbursement.save();
+    res.status(200).json(reimbursement);
+  } catch (error) {
+    console.error('Error editing reimbursement request:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// User/Admin: delete a reimbursement request
+export const deleteReimbursementRequest = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      res.status(400).json({ message: 'Invalid request id' });
+      return;
+    }
+
+    const reimbursement = await PayrollAdjustment.findOne({ where: { id, type: 'reimbursement' } });
+    if (!reimbursement) {
+      res.status(404).json({ message: 'Reimbursement request not found' });
+      return;
+    }
+
+    if (userRole !== 'admin' && (reimbursement.userId !== userId || reimbursement.status !== 'pending')) {
+      res.status(403).json({ message: 'Forbidden: You can only delete your own pending requests' });
+      return;
+    }
+
+    await reimbursement.destroy();
+    res.status(200).json({ message: 'Reimbursement request deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting reimbursement request:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

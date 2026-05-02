@@ -9,6 +9,11 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+const profileDir = path.join(__dirname, '../../uploads/profiles');
+if (!fs.existsSync(profileDir)) {
+  fs.mkdirSync(profileDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -31,7 +36,34 @@ export const uploadReimbursement = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit 5MB
   fileFilter: (req, file, cb) => {
-    // Hanya izinkan gambar
+    // Hanya izinkan gambar atau pdf
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format file tidak didukung. Harap upload gambar (JPG/PNG) atau PDF.'));
+    }
+  }
+});
+
+// Konfigurasi untuk Profile Picture
+const profileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, profileDir); // Gunakan direktori khusus profil
+  },
+  filename: (req: AuthRequest, file, cb) => {
+    const timestamp = Date.now();
+    const fullName = req.user?.fullName ? req.user.fullName.replace(/\s+/g, '_') : 'Unknown_User';
+    const ext = path.extname(file.originalname);
+    cb(null, `${timestamp}_${fullName}_PROFILE${ext}`);
+  },
+});
+
+export const uploadProfile = multer({ 
+  storage: profileStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit 5MB
+  fileFilter: (req, file, cb) => {
+    // Hanya izinkan gambar untuk profile
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);

@@ -6,7 +6,9 @@ const router = Router();
 
 router.use(authMiddleware);
 
+import { uploadProfile } from '../utils/uploadImageMiddleware';
+
 router.get('/manager-status', getManagerStatus);
-router.put('/', updateSelfProfile);
+router.put('/', uploadProfile.single('photo'), updateSelfProfile);
 
 export default router;

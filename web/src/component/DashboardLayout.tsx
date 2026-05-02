@@ -21,6 +21,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import LeaveIcon from '@mui/icons-material/TimeToLeave';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -37,6 +38,7 @@ const navItems = [
   { key: 'tree-management', label: 'User Tree', icon: <AccountTreeIcon /> },
   { key: 'attendance', label: 'Attendance', icon: <EventAvailableIcon /> },
   { key: 'leave-management', label: 'Leave Management', icon: <LeaveIcon /> },
+  { key: 'reimburse', label: 'Reimbursement', icon: <RequestQuoteIcon /> },
 ];
 
 export default function DashboardLayout({

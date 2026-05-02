@@ -27,10 +27,17 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     console.warn('WARNING: No auth token available for request to:', url);
   }
 
+  const isFormData = options.body instanceof FormData;
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+    ...(!isFormData && { 'Content-Type': 'application/json' }),
     ...(options.headers as Record<string, string>),
   };
+
+  
+  if (isFormData && headers['Content-Type'] === 'multipart/form-data') {
+    delete headers['Content-Type'];
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;

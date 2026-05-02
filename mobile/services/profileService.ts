@@ -8,10 +8,10 @@ type UpdateProfilePayload = {
 };
 
 export const profileService = {
-  async updateProfile(payload: UpdateProfilePayload) {
+  async updateProfile(formData: FormData) {
     return fetchJson('/profile', {
       method: 'PUT',
-      body: JSON.stringify(payload),
+      body: formData,
     });
   },
 };

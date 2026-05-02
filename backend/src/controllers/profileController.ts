@@ -14,7 +14,12 @@ export const updateSelfProfile = async (
       return;
     }
 
-    const { phoneNumber, address, photoPath } = req.body;
+    const { phoneNumber, address } = req.body;
+    let photoPath = req.body.photoPath; // Might still receive a string if no new photo uploaded
+
+    if (req.file) {
+      photoPath = `/uploads/profiles/${req.file.filename}`;
+    }
 
     const user = await User.findOne({ where: { id: userId } });
     if (!user) {
@@ -24,7 +29,7 @@ export const updateSelfProfile = async (
 
     if (phoneNumber) user.phoneNumber = phoneNumber;
     if (address) user.address = address;
-    if (photoPath !== undefined) user.photoPath = photoPath;
+    if (photoPath !== undefined && photoPath !== null) user.photoPath = photoPath;
 
     await user.save();
 
