@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
@@ -29,23 +30,29 @@ function LeaveScreen() {
   const [data, setData] = useState<LeaveItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      setLoading(true);
-      try {
-        const items = await leaveService.getHistory();
-        const sorted = [...items].sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
-        setData(sorted);
-      } catch (error) {
-        console.log('[Leave] Error fetching history:', error);
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const items = await leaveService.getHistory();
+      const sorted = [...items].sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
+      setData(sorted);
+    } catch (error) {
+      console.log('[Leave] Error fetching history:', error);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory();
+    }, [fetchHistory]),
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

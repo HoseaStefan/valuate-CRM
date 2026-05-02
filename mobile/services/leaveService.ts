@@ -20,6 +20,10 @@ type LeaveApiItem = {
   endDate: string;
   status: LeaveApiStatus;
   createdAt?: string;
+  user?: {
+    id: number;
+    fullName?: string;
+  };
 };
 
 const mapStatus = (status: LeaveApiStatus): LeaveStatus => {
@@ -84,5 +88,9 @@ export const leaveService = {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  },
+
+  async getCalendar(params: { month: number; year: number; all?: boolean }) {
+    return fetchJson<{ data: LeaveApiItem[] }>(buildUrl('/leave/calendar', params));
   },
 };

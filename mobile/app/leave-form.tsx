@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
+import { leaveService } from '@/services/leaveService';
 
 const TYPES = ['Cuti Tahunan', 'Cuti Sakit', 'Izin'] as const;
 
@@ -60,6 +61,7 @@ function LeaveFormScreen() {
   const [tempDay, setTempDay] = useState<number>(today.getDate());
   const [activeDatePart, setActiveDatePart] = useState<'day' | 'month' | 'year'>('day');
   const [datePartOptionsOpen, setDatePartOptionsOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const years = useMemo(() => {
     const y = today.getFullYear();
@@ -122,7 +124,19 @@ function LeaveFormScreen() {
     setDatePartOptionsOpen(true);
   };
 
-  const submit = () => {
+  const mapReason = (leaveType: LeaveType) => {
+    switch (leaveType) {
+      case 'Cuti Tahunan':
+        return 'vacation';
+      case 'Cuti Sakit':
+        return 'sick leave';
+      case 'Izin':
+      default:
+        return 'personal leave';
+    }
+  };
+
+  const submit = async () => {
     if (!type) {
       Alert.alert('Validasi', 'Pilih jenis cuti.');
       return;
@@ -136,12 +150,27 @@ function LeaveFormScreen() {
       return;
     }
 
-    Alert.alert('Berhasil', 'Pengajuan cuti berhasil dikirim (mock).', [
-      {
-        text: 'OK',
-        onPress: () => router.back(),
-      },
-    ]);
+    if (submitting) return;
+
+    setSubmitting(true);
+    try {
+      await leaveService.createLeave({
+        reason: mapReason(type),
+        startDate: normalizeDate(startDate).toISOString(),
+        endDate: normalizeDate(endDate).toISOString(),
+      });
+
+      Alert.alert('Berhasil', 'Pengajuan cuti berhasil dikirim.', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
+    } catch (error: any) {
+      Alert.alert('Gagal', error?.message || 'Pengajuan cuti gagal dikirim.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -191,8 +220,12 @@ function LeaveFormScreen() {
               textAlignVertical="top"
             />
 
-            <TouchableOpacity style={styles.submitButton} onPress={submit}>
-              <Text style={styles.submitButtonText}>Kirim Pengajuan</Text>
+            <TouchableOpacity style={styles.submitButton} onPress={submit} disabled={submitting}>
+              {submitting ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.submitButtonText}>Kirim Pengajuan</Text>
+              )}
             </TouchableOpacity>
           </View>
 

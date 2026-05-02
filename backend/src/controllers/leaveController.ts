@@ -180,7 +180,7 @@ export const calendarView = async (
 
     const leaves = await LeaveRequest.findAll({
       where,
-      include: [{ model: User, attributes: ['id', 'fullName', 'role'] }],
+      include: [{ model: User, as: 'user', attributes: ['id', 'fullName', 'role'] }],
     });
     res.status(200).json({
       month: `${year}-${String(month).padStart(2, '0')}`,
