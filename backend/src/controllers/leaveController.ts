@@ -142,7 +142,7 @@ export const leaveApproval = async (
   }
 };
 
-// Calendar view for a month. Query params: month (1-12), year, all=true to request all users when staff
+// Calendar view for a month.
 export const calendarView = async (
   req: AuthRequest,
   res: Response,
@@ -164,7 +164,6 @@ export const calendarView = async (
     const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
 
     const where: any = {
-      // overlap: startDate <= monthEnd AND endDate >= monthStart
       startDate: { [Op.lte]: monthEnd },
       endDate: { [Op.gte]: monthStart },
       status: 'approved',
@@ -270,7 +269,7 @@ export const editRequestLeave = async (
   }
 };
 
-// User's leave history (optional month/year filtering)
+// User's leave history
 export const getUserLeaveHistory = async (
   req: AuthRequest,
   res: Response,
@@ -415,6 +414,40 @@ export const getLeaveRequests = async (
     res.status(200).json(requests);
   } catch (error) {
     console.error('Error retrieving leave requests:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// User/Admin: delete a leave request
+export const deleteLeaveRequest = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      res.status(400).json({ message: 'Invalid request id' });
+      return;
+    }
+
+    const leave = await LeaveRequest.findOne({ where: { id } });
+    if (!leave) {
+      res.status(404).json({ message: 'Leave request not found' });
+      return;
+    }
+
+    if (userRole !== 'admin' && (leave.userId !== userId || leave.status !== 'pending')) {
+      res.status(403).json({ message: 'Forbidden: You can only delete your own pending requests' });
+      return;
+    }
+
+    await leave.destroy();
+    res.status(200).json({ message: 'Leave request deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting leave request:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };

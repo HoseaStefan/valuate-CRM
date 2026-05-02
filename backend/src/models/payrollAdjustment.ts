@@ -85,7 +85,7 @@ export class PayrollAdjustment extends Model {
   @ForeignKey(() => User)
   @Column({
     type: DataType.INTEGER,
-    allowNull: false,
+    allowNull: true,
   })
   reviewedBy!: number;
 

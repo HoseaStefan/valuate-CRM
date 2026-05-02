@@ -7,6 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
 import { reimbursementService } from '@/services/reimbursementService';
+import * as ImagePicker from 'expo-image-picker';
 
 const TYPES = ['Transport', 'Makan', 'ATK', 'Lainnya'] as const;
 
@@ -36,7 +37,26 @@ function ReimburseFormScreen() {
   const [typePickerOpen, setTypePickerOpen] = useState(false);
   const [amountDigits, setAmountDigits] = useState('');
   const [description, setDescription] = useState('');
+  const [proofUri, setProofUri] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Izin Diperlukan', 'Akses galeri dibutuhkan untuk memilih foto bukti.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setProofUri(result.assets[0].uri);
+    }
+  };
 
   const submit = async () => {
     const amount = Number(amountDigits || '0');
@@ -50,16 +70,33 @@ function ReimburseFormScreen() {
       return;
     }
 
+    if (!proofUri) {
+      Alert.alert('Validasi', 'Mohon lampirkan bukti (struk/invoice).');
+      return;
+    }
+
     if (submitting) return;
 
     setSubmitting(true);
     try {
-      await reimbursementService.createReimbursement({
-        title: type,
-        amount,
-        description: description.trim() || undefined,
-        proofPath: 'mobile-form',
-      });
+      const formData = new FormData();
+      formData.append('title', type);
+      formData.append('amount', String(amount));
+      if (description.trim()) {
+        formData.append('description', description.trim());
+      }
+
+      const filename = proofUri.split('/').pop() || 'proof.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const fileType = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append('proof', {
+        uri: proofUri,
+        name: filename,
+        type: fileType,
+      } as any);
+
+      await reimbursementService.createReimbursement(formData);
 
       Alert.alert('Berhasil', 'Pengajuan reimbursement berhasil dikirim.', [
         {
@@ -127,6 +164,17 @@ function ReimburseFormScreen() {
               numberOfLines={4}
               textAlignVertical="top"
             />
+
+            <Text style={[styles.label, { marginTop: 14 }]}>Bukti / Struk (Wajib)</Text>
+            <TouchableOpacity 
+              style={[styles.inputWrap, { alignItems: 'center', paddingVertical: 16 }]} 
+              onPress={handlePickImage}
+            >
+              <IconSymbol name="photo" size={28} color={proofUri ? ValuateColors.primary : ValuateColors.text.light} />
+              <Text style={{ marginTop: 8, color: proofUri ? ValuateColors.primary : ValuateColors.text.light, fontWeight: '600' }}>
+                {proofUri ? 'Bukti Terlampir (Ketuk untuk ubah)' : 'Pilih Foto Bukti'}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.submitButton} onPress={submit} disabled={submitting}>
               {submitting ? (

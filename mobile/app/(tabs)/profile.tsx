@@ -136,7 +136,26 @@ function ProfileScreen() {
         photoPath: pendingPhotoUri,
       };
 
-      await profileService.updateProfile(payload);
+      const formData = new FormData();
+      formData.append('fullName', payload.fullName);
+      formData.append('phoneNumber', payload.phoneNumber);
+      formData.append('address', payload.address);
+
+      if (pendingPhotoUri && !pendingPhotoUri.startsWith('http')) {
+        const filename = pendingPhotoUri.split('/').pop() || 'photo.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const fileType = match ? `image/${match[1]}` : `image/jpeg`;
+
+        formData.append('photo', {
+          uri: pendingPhotoUri,
+          name: filename,
+          type: fileType,
+        } as any);
+      } else if (pendingPhotoUri && pendingPhotoUri.startsWith('http')) {
+        formData.append('photoPath', pendingPhotoUri);
+      }
+
+      await profileService.updateProfile(formData);
       updateUserProfile(payload);
 
       if (pendingPhotoUri) {

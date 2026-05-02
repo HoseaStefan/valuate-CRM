@@ -7,6 +7,7 @@ import {
   getUserRecentLeaves,
   getUserLeaveHistory,
   getLeaveRequests,
+  deleteLeaveRequest,
 } from '../controllers/leaveController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 
@@ -31,10 +32,12 @@ router.put('/:id/review', requireRole(['admin', 'staff']), leaveApproval);
 // Manager/Admin: list leave requests
 router.get('/requests', requireRole(['admin', 'staff']), getLeaveRequests);
 
-// Calendar view: returns leaves for month; authenticated users can request
 router.get('/calendar', calendarView);
 
 // Admin-only: edit leave requests
 router.put('/:id', requireRole(['admin']), editRequestLeave);
+
+// User/Admin: delete leave request
+router.delete('/:id', deleteLeaveRequest);
 
 export default router;

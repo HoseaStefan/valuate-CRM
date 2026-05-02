@@ -12,6 +12,7 @@ import AddSalary from './View/AddSalary';
 import LeaveManagement from './View/LeaveManagement';
 import Attendance from './View/Attendance';
 import UserTree from './View/UserTree';
+import Reimburse from './View/Reimburse';
 // import Payroll from './View/Payroll';
 
 function AppContent() {
@@ -30,6 +31,7 @@ function AppContent() {
                     <Route path="/leave-management" element={<LeaveManagement />} />
                     <Route path="/attendance" element={<Attendance />} />
                     <Route path="/tree-management" element={<UserTree />} />
+                    <Route path="/reimburse" element={<Reimburse />} />
                     {/* <Route path="/payroll" element={<Payroll />} /> */}
                     <Route path="*" element={<NotFound />} />
                 </Routes>

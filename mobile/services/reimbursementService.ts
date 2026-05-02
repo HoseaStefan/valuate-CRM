@@ -72,15 +72,10 @@ export const reimbursementService = {
     }));
   },
 
-  async createReimbursement(payload: {
-    title: string;
-    amount: number;
-    description?: string;
-    proofPath: string;
-  }) {
+  async createReimbursement(formData: FormData) {
     return fetchJson('/reimbursement', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: formData,
     });
   },
 };
