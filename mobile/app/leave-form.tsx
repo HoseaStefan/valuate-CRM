@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 
@@ -52,7 +52,6 @@ function LeaveFormScreen() {
 
   const [startDate, setStartDate] = useState<Date>(today);
   const [endDate, setEndDate] = useState<Date>(today);
-  const [reason, setReason] = useState('');
 
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [datePickerTarget, setDatePickerTarget] = useState<'start' | 'end'>('start');
@@ -145,10 +144,6 @@ function LeaveFormScreen() {
       Alert.alert('Validasi', 'Tanggal mulai harus sebelum / sama dengan tanggal selesai.');
       return;
     }
-    if (!reason.trim()) {
-      Alert.alert('Validasi', 'Isi alasan cuti.');
-      return;
-    }
 
     if (submitting) return;
 
@@ -208,17 +203,6 @@ function LeaveFormScreen() {
               <IconSymbol name="calendar" size={18} color={ValuateColors.text.secondary} />
             </TouchableOpacity>
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Alasan</Text>
-            <TextInput
-              value={reason}
-              onChangeText={setReason}
-              placeholder="Contoh: urusan keluarga"
-              placeholderTextColor={ValuateColors.text.light}
-              style={[styles.input, styles.multiline]}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
 
             <TouchableOpacity style={styles.submitButton} onPress={submit} disabled={submitting}>
               {submitting ? (
@@ -433,22 +417,6 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: ValuateColors.text.light,
-  },
-  input: {
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: ValuateColors.background,
-    borderWidth: 1,
-    borderColor: ValuateColors.border,
-    paddingHorizontal: 12,
-    fontSize: 14,
-    fontWeight: '700',
-    color: ValuateColors.text.primary,
-  },
-  multiline: {
-    height: 120,
-    paddingTop: 12,
-    paddingBottom: 12,
   },
   submitButton: {
     height: 52,
