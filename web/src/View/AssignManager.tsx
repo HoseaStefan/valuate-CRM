@@ -14,20 +14,40 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../component/DashboardLayout';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-// Mock data
-const users = [
-    { id: 1, name: 'John Doe', email: 'john.doe@example.com', role: 'Admin', manager: 'System' },
-    { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com', role: 'Manager', manager: 'John Doe' },
-    { id: 3, name: 'Peter Jones', email: 'peter.jones@example.com', role: 'Employee', manager: 'Jane Smith' },
-    { id: 4, name: 'Sarah Miller', email: 'sarah.miller@example.com', role: 'Employee', manager: 'Jane Smith' },
-];
+import { useEffect } from 'react';
+import { fetchEndpoint } from '../fetchEndpoint';
 
 export default function AssignManager() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const user = users.find((u) => u.id === Number(userId));
-  
-  const [selectedManager, setSelectedManager] = useState(user?.manager || '');
+  const [user, setUser] = useState<any>(null);
+  const [potentialManagers, setPotentialManagers] = useState<any[]>([]);
+  const [selectedManager, setSelectedManager] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userData = await fetchEndpoint(`/api/users/${userId}`, 'GET', token);
+        setUser(userData);
+        setSelectedManager(userData?.managerId || '');
+        
+        const allUsers = await fetchEndpoint('/api/users', 'GET', token);
+        const managers = allUsers.filter((u: any) => 
+          (u.role === 'admin' || u.role === 'staff') && u.id !== userId
+        );
+        setPotentialManagers(managers);
+      } catch (error) {
+        console.error("Error fetching data for assign manager", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [userId]);
+
+  if (loading) return <DashboardLayout><Typography>Loading...</Typography></DashboardLayout>;
 
   if (!user) {
     return (
@@ -37,13 +57,16 @@ export default function AssignManager() {
     );
   }
 
-  const potentialManagers = users.filter(u => u.role === 'Manager' && u.id !== user.id);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(`Assigning ${selectedManager} as manager for ${user.name}`);
-    // API call to update manager would go here
-    navigate(`/user/${userId}`);
+    try {
+      const token = localStorage.getItem('token');
+      await fetchEndpoint(`/api/users/${userId}`, 'PUT', token, { managerId: selectedManager || null });
+      navigate(`/user-management`);
+    } catch (error) {
+      console.error('Error assigning manager:', error);
+      alert('Failed to assign manager');
+    }
   };
 
   return (
@@ -57,7 +80,7 @@ export default function AssignManager() {
         <CardContent>
           <Typography variant="h6" gutterBottom>Assign Manager</Typography>
           <Typography variant="body1" color="text.secondary" mb={3}>
-            Assign a manager for <strong>{user.name}</strong>.
+            Assign a manager for <strong>{user.fullName}</strong>.
           </Typography>
           <form onSubmit={handleSubmit}>
             <FormControl fullWidth>
@@ -68,10 +91,11 @@ export default function AssignManager() {
                 onChange={(e) => setSelectedManager(e.target.value)}
               >
                 {potentialManagers.map(manager => (
-                  <MenuItem key={manager.id} value={manager.name}>
-                    {manager.name}
+                  <MenuItem key={manager.id} value={manager.id}>
+                    {manager.fullName}
                   </MenuItem>
                 ))}
+                <MenuItem value="">None</MenuItem>
               </Select>
             </FormControl>
             <Box mt={3} sx={{ textAlign: 'right' }}>

@@ -25,10 +25,10 @@ export class Attendance extends Model {
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
   })
-  userId!: number;
+  userId!: string;
 
   @BelongsTo(() => User, 'userId')
   user?: User;

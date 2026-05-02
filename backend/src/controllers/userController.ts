@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { User } from '../models/users';
 import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
 
 export const createUser = async (
   req: Request,
@@ -66,7 +67,20 @@ export const createUser = async (
 
 export const getUsers = async (req: Request, res: Response): Promise<void> => {
   try {
+    const { search } = req.query;
+    
+    let whereClause: any = {};
+    if (search && typeof search === 'string') {
+      whereClause = {
+        [Op.or]: [
+          { fullName: { [Op.iLike]: `%${search}%` } },
+          { email: { [Op.iLike]: `%${search}%` } },
+        ],
+      };
+    }
+
     const users = await User.findAll({
+      where: whereClause,
       attributes: [
         'id',
         'email',
@@ -80,6 +94,7 @@ export const getUsers = async (req: Request, res: Response): Promise<void> => {
         'createdAt',
         'updatedAt',
       ],
+      order: [['fullName', 'ASC']],
     });
     res.json(users);
   } catch (error) {
@@ -219,7 +234,7 @@ export const deleteUser = async (
 // ===== VIEW MANAGEMENT TREE =====
 
 interface UserNode {
-  id: number;
+  id: string;
   fullName: string;
   email: string;
   role: string;
@@ -236,7 +251,7 @@ export const getManagementTree = async (
       attributes: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId'],
     });
 
-    const userMap = new Map<number, UserNode>();
+    const userMap = new Map<string, UserNode>();
     const tree: UserNode[] = [];
 
     // Initialize map

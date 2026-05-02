@@ -57,13 +57,15 @@ export default function UserManagement() {
   const [orderBy, setOrderBy] = useState<string>('name');
   const [loading, setLoading] = useState(true);
   const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch users from API
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetchEndpoint('/api/users', 'GET', token);
+        const url = searchQuery ? `/api/users?search=${encodeURIComponent(searchQuery)}` : '/api/users';
+        const response = await fetchEndpoint(url, 'GET', token);
         
         // Create a map for quick lookup
         const userMapTemp = new Map<string, User>();
@@ -106,7 +108,7 @@ export default function UserManagement() {
     };
 
     fetchUsers();
-  }, []);
+  }, [searchQuery]);
 
   const handleActionClick = (event: React.MouseEvent<HTMLElement>, userId: string) => {
     setAnchorEl(event.currentTarget);
@@ -204,6 +206,8 @@ export default function UserManagement() {
           <TextField
             fullWidth
             placeholder="Search users by name or email"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">

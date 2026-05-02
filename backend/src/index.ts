@@ -14,6 +14,7 @@ import leaveRoutes from './routes/leaveRoutes';
 import reimbursementRoutes from './routes/reimbursementRoutes';
 import payrollRoutes from './routes/payrollRoutes';
 import attendanceRoutes from './routes/attendanceRoutes';
+import dashboardRoutes from './routes/dashboardRoutes';
 
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use('/api/leave', leaveRoutes);
 app.use('/api/reimbursement', reimbursementRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.json({ message: 'Welcome to Express Sequelize API' });

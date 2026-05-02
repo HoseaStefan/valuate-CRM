@@ -4,15 +4,15 @@
 module.exports = {
   async up (queryInterface, Sequelize) {
     await queryInterface.changeColumn('PayrollAdjustments', 'reviewedBy', {
-      type: Sequelize.INTEGER,
+      type: Sequelize.UUID,
       allowNull: true,
     });
   },
 
   async down (queryInterface, Sequelize) {
     await queryInterface.changeColumn('PayrollAdjustments', 'reviewedBy', {
-      type: Sequelize.INTEGER,
-      allowNull: false,
+      type: Sequelize.UUID,
+      allowNull: true,
     });
   }
 };

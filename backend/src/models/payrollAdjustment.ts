@@ -25,10 +25,10 @@ export class PayrollAdjustment extends Model {
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
   })
-  userId!: number;
+  userId!: string;
 
   @BelongsTo(() => User, 'userId')
   user?: User;
@@ -84,10 +84,10 @@ export class PayrollAdjustment extends Model {
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  reviewedBy!: number;
+  reviewedBy!: string | null;
 
   @BelongsTo(() => User, 'reviewedBy')
   reviewer?: User;

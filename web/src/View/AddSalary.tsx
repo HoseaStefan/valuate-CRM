@@ -16,13 +16,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../component/DashboardLayout';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-// Mock data - in a real app, you'd fetch user details
-const users = [
-    { id: 1, name: 'John Doe' },
-    { id: 2, name: 'Jane Smith' },
-    { id: 3, name: 'Peter Jones' },
-    { id: 4, name: 'Sarah Miller' },
-];
+import { useEffect } from 'react';
+import { fetchEndpoint } from '../fetchEndpoint';
 
 const initialFormState = {
     basicSalary: '',
@@ -34,9 +29,29 @@ const initialFormState = {
 export default function AddSalary() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const user = users.find((u) => u.id === Number(userId));
-  
+  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState(initialFormState);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const userData = await fetchEndpoint(`/api/users/${userId}`, 'GET', token);
+        setUser(userData);
+        if (userData?.baseSalary) {
+          setFormData(prev => ({ ...prev, basicSalary: userData.baseSalary.toString() }));
+        }
+      } catch (error) {
+        console.error("Error fetching data for add salary", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [userId]);
+
+  if (loading) return <DashboardLayout><Typography>Loading...</Typography></DashboardLayout>;
 
   if (!user) {
     return (
@@ -63,11 +78,19 @@ export default function AddSalary() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Salary Data for', user.name, ':', formData);
-    // Here you would call an API to save the salary details
-    navigate(`/user-management`);
+    try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        baseSalary: parseFloat(formData.basicSalary) || 0,
+      };
+      await fetchEndpoint(`/api/users/${userId}`, 'PUT', token, payload);
+      navigate(`/user-management`);
+    } catch (error) {
+      console.error('Error updating salary:', error);
+      alert('Failed to save salary');
+    }
   };
 
   return (
@@ -79,7 +102,7 @@ export default function AddSalary() {
       </Box>
       <Card variant="outlined">
         <CardContent>
-          <Typography variant="h6" gutterBottom>Add Salary for {user.name}</Typography>
+          <Typography variant="h6" gutterBottom>Add Salary for {user.fullName}</Typography>
           <form onSubmit={handleSubmit}>
             <Grid container spacing={3} mt={1}>
               <Grid size={{ xs: 12, sm: 6}}>

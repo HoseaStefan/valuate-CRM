@@ -126,7 +126,7 @@ const LeaveManagement = () => {
   const handleRequestSubmit = async (request: any) => {
     try {
       
-      await fetchEndpoint('/api/leave/', 'POST', token, request);
+      await fetchEndpoint('/api/leave', 'POST', token, request);
       setIsModalOpen(false);
       fetchMyHistory();
     } catch (error) {

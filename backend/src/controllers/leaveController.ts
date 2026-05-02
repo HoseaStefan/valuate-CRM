@@ -99,9 +99,9 @@ export const leaveApproval = async (
       return;
     }
 
-    const { action, rejectionReason } = req.body as any; // action: 'approve' | 'reject'
-    if (!['approve', 'reject'].includes(action)) {
-      res.status(400).json({ message: "Action must be 'approve' or 'reject'" });
+    const { status, rejectionReason } = req.body as any; // status: 'approved' | 'rejected'
+    if (!['approved', 'rejected'].includes(status)) {
+      res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
       return;
     }
 
@@ -124,7 +124,7 @@ export const leaveApproval = async (
       return;
     }
 
-    if (action === 'approve') {
+    if (status === 'approved') {
       leave.status = 'approved';
       leave.rejectionReason = null;
     } else {
@@ -379,7 +379,7 @@ export const getLeaveRequests = async (
 
     const { status } = req.query as any;
 
-    let targetUserIds: number[] = [];
+    let targetUserIds: string[] = [];
 
     if (reviewerRole !== 'admin') {
       const directSubs = await User.findAll({

@@ -93,7 +93,7 @@ export const updateReimbursementApproval = async (
       return;
     }
 
-    if (reimbursement.userId === reviewerId) {
+    if (reimbursement.userId === reviewerId && reviewerRole !== 'admin') {
       res.status(403).json({
         message:
           'Forbidden: Security mechanism preventing users from approving or rejecting their own personal reimbursement requests',
@@ -156,17 +156,17 @@ export const getReimbursementRequests = async (
     const reviewerRole = req.user?.role;
     const { status, startDate, endDate } = req.query;
 
-    let activeSubordinateIds: number[] = [];
+    let activeSubordinateIds: string[] = [];
 
     if (reviewerRole !== 'admin') {
-      const allSubordinates = new Set<number>();
+      const allSubordinates = new Set<string>();
 
       let currentLevel = await User.findAll({
         where: { managerId: reviewerId },
       });
 
       while (currentLevel.length > 0) {
-        const nextLevelIds: number[] = [];
+        const nextLevelIds: string[] = [];
         for (const u of currentLevel) {
           allSubordinates.add(u.id);
           nextLevelIds.push(u.id);

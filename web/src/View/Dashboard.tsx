@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -14,6 +14,7 @@ import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import DashboardLayout from '../component/DashboardLayout';
+import { fetchEndpoint } from '../fetchEndpoint';
 
 interface MetricCard {
   label: string;
@@ -23,21 +24,37 @@ interface MetricCard {
   color: string;
 }
 
-const metrics: MetricCard[] = [
-  { label: 'Total Users', value: 248, icon: <PeopleAltOutlinedIcon />, trend: 12, color: '#1976d2' },
-  { label: 'Present Today', value: 198, icon: <AccessTimeOutlinedIcon />, trend: 5, color: '#2e7d32' },
-  { label: 'Pending Reimburse', value: 24, icon: <ReceiptLongOutlinedIcon />, trend: -8, color: '#ed6c02' },
-  { label: 'Leave Requests', value: 12, icon: <CalendarMonthOutlinedIcon />, trend: 3, color: '#7b1fa2' },
-];
-
-const activities = [
-  { action: 'User John Doe requested leave', time: '2 hours ago' },
-  { action: 'Reimbursement of $250 approved', time: '4 hours ago' },
-  { action: 'New user Sarah Smith added', time: '1 day ago' },
-  { action: 'Payroll processed for March', time: '2 days ago' },
-];
-
 export default function HomeAdmin() {
+  const [metricsData, setMetricsData] = useState({
+    totalUsers: 0,
+    presentToday: 0,
+    pendingReimburse: 0,
+    pendingLeave: 0
+  });
+  const [activitiesList, setActivitiesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const data = await fetchEndpoint('/api/dashboard', 'GET', token);
+        if (data) {
+          setMetricsData(data.metrics || metricsData);
+          setActivitiesList(data.activities || []);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+  const metrics: MetricCard[] = [
+    { label: 'Total Users', value: metricsData.totalUsers, icon: <PeopleAltOutlinedIcon />, color: '#1976d2' },
+    { label: 'Present Today', value: metricsData.presentToday, icon: <AccessTimeOutlinedIcon />, color: '#2e7d32' },
+    { label: 'Pending Reimburse', value: metricsData.pendingReimburse, icon: <ReceiptLongOutlinedIcon />, color: '#ed6c02' },
+    { label: 'Leave Requests', value: metricsData.pendingLeave, icon: <CalendarMonthOutlinedIcon />, color: '#7b1fa2' },
+  ];
   return (
     <DashboardLayout currentPage="dashboard">
       <Typography variant="h4" fontWeight={700} gutterBottom>
@@ -74,17 +91,25 @@ export default function HomeAdmin() {
       </Typography>
       <Card variant="outlined" sx={{ borderRadius: 2 }}>
         <CardContent>
-          {activities.map((activity, i) => (
+          {activitiesList.length === 0 && (
+            <Typography variant="body2" color="text.secondary" p={2} textAlign="center">
+              No recent activity found.
+            </Typography>
+          )}
+          {activitiesList.map((activity, i) => {
+            const timeDate = new Date(activity.time);
+            return (
             <Box key={i}>
               <Stack direction="row" justifyContent="space-between" py={1.25}>
                 <Typography variant="body2">{activity.action}</Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {activity.time}
+                  {timeDate.toLocaleString()}
                 </Typography>
               </Stack>
-              {i < activities.length - 1 && <Divider />}
+              {i < activitiesList.length - 1 && <Divider />}
             </Box>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
     </DashboardLayout>
