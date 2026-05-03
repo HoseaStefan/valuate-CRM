@@ -25,10 +25,10 @@ export class LeaveRequest extends Model {
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: false,
   })
-  userId!: number;
+  userId!: string;
 
   @BelongsTo(() => User, 'userId')
   user?: User;
@@ -59,10 +59,10 @@ export class LeaveRequest extends Model {
 
   @ForeignKey(() => User)
   @Column({
-    type: DataType.INTEGER,
+    type: DataType.UUID,
     allowNull: true,
   })
-  reviewedBy!: number | null;
+  reviewedBy!: string | null;
 
   @BelongsTo(() => User, 'reviewedBy')
   reviewer?: User;

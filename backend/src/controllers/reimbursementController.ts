@@ -93,7 +93,7 @@ export const updateReimbursementApproval = async (
       return;
     }
 
-    if (reimbursement.userId === reviewerId) {
+    if (reimbursement.userId === reviewerId && reviewerRole !== 'admin') {
       res.status(403).json({
         message:
           'Forbidden: Security mechanism preventing users from approving or rejecting their own personal reimbursement requests',
