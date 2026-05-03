@@ -5,6 +5,66 @@ import { Attendance } from '../models/attendances';
 import { User } from '../models/users';
 import { AuthRequest } from '../middleware/authMiddleware';
 
+const getLocalTimeParts = (date: Date, timeZone: string) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  const weekday = parts.find((p) => p.type === 'weekday')?.value;
+  const hour = parts.find((p) => p.type === 'hour')?.value;
+  const minute = parts.find((p) => p.type === 'minute')?.value;
+
+  return {
+    weekday,
+    hour: hour ? Number(hour) : null,
+    minute: minute ? Number(minute) : null,
+  };
+};
+
+const getEnvValue = (key: string): string | undefined => {
+  if (process.env[key]) return process.env[key];
+  const match = Object.entries(process.env).find(
+    ([envKey]) => envKey.trim() === key,
+  );
+  return match ? match[1] : undefined;
+};
+
+const getCheckInMinutes = (date: Date): number | null => {
+  const timeZone = process.env.APP_TIMEZONE || 'Asia/Jakarta';
+  const { weekday } = getLocalTimeParts(date, timeZone);
+  const map: Record<string, string> = {
+    Mon: 'MONDAY',
+    Tue: 'TUESDAY',
+    Wed: 'WEDNESDAY',
+    Thu: 'THURSDAY',
+    Fri: 'FRIDAY',
+    Sat: 'SATURDAY',
+    Sun: 'SUNDAY',
+  };
+
+  if (!weekday) return null;
+  const key = map[weekday];
+  if (!key) return null;
+  const raw = getEnvValue(key);
+  if (!raw) return null;
+  const value = Number(raw);
+  return Number.isNaN(value) ? null : value;
+};
+
+const isLateCheckIn = (date: Date): boolean => {
+  const timeZone = process.env.APP_TIMEZONE || 'Asia/Jakarta';
+  const checkInMinutes = getCheckInMinutes(date);
+  if (checkInMinutes === null) return false;
+  const { hour, minute } = getLocalTimeParts(date, timeZone);
+  if (hour === null || minute === null) return false;
+  const minutesNow = hour * 60 + minute;
+  return minutesNow > checkInMinutes + 15;
+};
+
 // Get attendance history. If userId omitted, returns requester's records (unless admin sets userId)
 export const getAttendanceHistory = async (
   req: AuthRequest,
@@ -171,12 +231,28 @@ export const scanQR = async (
 
     // No record => treat as clock_in
     if (!record) {
+      const timeZone = process.env.APP_TIMEZONE || 'Asia/Jakarta';
+      const checkInMinutes = getCheckInMinutes(now);
+      const localParts = getLocalTimeParts(now, timeZone);
+      const minutesNow = localParts.hour !== null && localParts.minute !== null
+        ? localParts.hour * 60 + localParts.minute
+        : null;
+      const status = isLateCheckIn(now) ? 'late' : 'present';
+      console.log('[Attendance] Late check debug', {
+        timeZone,
+        weekday: localParts.weekday,
+        hour: localParts.hour,
+        minute: localParts.minute,
+        minutesNow,
+        checkInMinutes,
+        late: status,
+      });
       record = await Attendance.create({
         userId,
         date: dateString,
         clockIn: timeString,
         clockOut: '00:00:00',
-        status: 'present',
+        status,
         notes: null,
       } as any);
 

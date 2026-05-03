@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
@@ -41,6 +42,20 @@ function statusColor(status: AttendanceStatus) {
 }
 
 function AttendanceScreen() {
+    useFocusEffect(
+      React.useCallback(() => {
+        const onBackPress = () => {
+          if (router.canGoBack()) {
+            return false;
+          }
+          router.replace('/(tabs)');
+          return true;
+        };
+
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => backHandler.remove();
+      }, []),
+    );
   const now = new Date();
   const currentMonthIndex = now.getMonth();
   const currentYear = now.getFullYear();
@@ -93,7 +108,16 @@ function AttendanceScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerButton} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+              return;
+            }
+            router.replace('/(tabs)');
+          }}
+        >
           <IconSymbol name="chevron.left" size={22} color={ValuateColors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Absensi</Text>
