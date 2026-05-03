@@ -236,38 +236,16 @@ export const getManagementTree = async (
       attributes: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId'],
     });
 
-    const userMap = new Map<string, UserNode>();
-    const tree: UserNode[] = [];
+    // Map DB users to the frontend/mock shape: { id, name, role, managerId, avatar }
+    const mapped = users.map((u) => ({
+      id: u.id,
+      name: u.fullName || u.email,
+      role: u.role,
+      managerId: u.managerId || null,
+      avatar: u.photoPath || null,
+    }));
 
-    // Initialize map
-    users.forEach((u) => {
-      userMap.set(u.id, {
-        id: u.id,
-        fullName: u.fullName,
-        email: u.email,
-        role: u.role,
-        photoPath: u.photoPath,
-        children: [],
-      });
-    });
-
-    // Construct hierarchy
-    users.forEach((u) => {
-      if (u.managerId) {
-        const managerNode = userMap.get(u.managerId);
-        if (managerNode) {
-          managerNode.children.push(userMap.get(u.id)!);
-        } else {
-          // If manager doesn't exist, place at root level
-          tree.push(userMap.get(u.id)!);
-        }
-      } else {
-        // No manager means it's a top level node
-        tree.push(userMap.get(u.id)!);
-      }
-    });
-
-    res.json(tree);
+    res.json(mapped);
   } catch (error) {
     console.error('Error getting management tree:', error);
     res.status(500).json({ message: 'Internal server error' });

@@ -5,6 +5,7 @@ import {
   scanQR,
   generateQR,
   getTodayAttendanceStatus,
+  getAllAttendance
 } from '../controllers/attendanceController';
 import { authMiddleware, requireRole } from '../middleware/authMiddleware';
 
@@ -26,5 +27,8 @@ router.post('/scan', scanQR);
 
 // Admin edits attendance
 router.put('/:id', requireRole(['admin']), updateAttendance);
+
+// Admin get all attendance records
+router.get('/', requireRole(['admin']), getAllAttendance);
 
 export default router;

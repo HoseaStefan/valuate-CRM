@@ -3,13 +3,13 @@ import { Box, Typography, Button, Tabs, Tab, Card, TableContainer, Table, TableH
 import { useEffect, useState, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 
-// Mock data for attendance records
-const dummyAttendance = [
-  { id: 1, user: { name: 'John Doe', avatar: '/avatars/avatar-1.png' }, date: '2024-07-29', checkIn: '08:55', checkOut: '17:05', status: 'Present' },
-  { id: 2, user: { name: 'Jane Smith', avatar: '/avatars/avatar-2.png' }, date: '2024-07-29', checkIn: '09:15', checkOut: '17:00', status: 'Late' },
-  { id: 3, user: { name: 'Peter Jones', avatar: '/avatars/avatar-3.png' }, date: '2024-07-29', checkIn: null, checkOut: null, status: 'Absent' },
-  { id: 4, user: { name: 'Sarah Miller', avatar: '/avatars/avatar-4.png' }, date: '2024-07-29', checkIn: '08:45', checkOut: '16:50', status: 'Present' },
-];
+// // Mock data for attendance records
+// const dummyAttendance = [
+//   { id: 1, user: { name: 'John Doe', avatar: '/avatars/avatar-1.png' }, date: '2024-07-29', checkIn: '08:55', checkOut: '17:05', status: 'Present' },
+//   { id: 2, user: { name: 'Jane Smith', avatar: '/avatars/avatar-2.png' }, date: '2024-07-29', checkIn: '09:15', checkOut: '17:00', status: 'Late' },
+//   { id: 3, user: { name: 'Peter Jones', avatar: '/avatars/avatar-3.png' }, date: '2024-07-29', checkIn: null, checkOut: null, status: 'Absent' },
+//   { id: 4, user: { name: 'Sarah Miller', avatar: '/avatars/avatar-4.png' }, date: '2024-07-29', checkIn: '08:45', checkOut: '16:50', status: 'Present' },
+// ];
 
 const style = {
     position: 'absolute' as 'absolute',
@@ -33,11 +33,57 @@ const Attendance = () => {
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const [isQRRefreshing, setIsQRRefreshing] = useState(false);
+  const [isLoadingAttendance, setIsLoadingAttendance] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const fetchAttendanceData = async (authToken: string) => {
+    try {
+      setIsLoadingAttendance(true);
+      const response = await fetch('http://localhost:3000/api/attendance', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch attendance:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('Raw API response:', data);
+      const records = data.records || [];
+
+      // Transform backend format to frontend format
+      const transformedRecords = records.map((record: any) => {
+        console.log('Processing record:', record);
+        return {
+          id: record.id,
+          user: {
+            name: record.user?.fullName || 'Unknown',
+            avatar: record.user?.photoPath || '/avatars/default-avatar.png',
+          },
+          date: record.date,
+          checkIn: record.clockIn !== '00:00:00' ? record.clockIn : null,
+          checkOut: record.clockOut !== '00:00:00' ? record.clockOut : null,
+          status: record.status ? record.status.charAt(0).toUpperCase() + record.status.slice(1) : 'Unknown',
+        };
+      });
+      setAttendanceRecords(transformedRecords);
+    } catch (error) {
+      console.error('Error fetching attendance data:', error);
+      setAttendanceRecords([]);
+    } finally {
+      setIsLoadingAttendance(false);
+    }
+  };
+
   useEffect(() => {
-    setAttendanceRecords(dummyAttendance);
-  }, []);
+    if (!token) return;
+    fetchAttendanceData(token);
+  }, [token]);
 
   useEffect(() => {
     return () => {
@@ -165,41 +211,51 @@ const Attendance = () => {
         </Box>
         {tab === 0 && (
           <Box sx={{ pt: 3 }}>
-            <Card variant="outlined" sx={{ borderRadius: 2 }}>
-              <TableContainer>
-                <Table sx={{ minWidth: 750 }}>
-                  <TableHead sx={{ bgcolor: 'background.paper' }}>
-                    <TableRow>
-                      <TableCell>Employee</TableCell>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Check-in</TableCell>
-                      <TableCell>Check-out</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell align="right">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {attendanceRecords.map((record) => (
-                      <TableRow hover key={record.id}>
-                        <TableCell>
-                          <Stack direction="row" alignItems="center" spacing={2}>
-                            <Avatar src={record.user.avatar} sx={{ width: 40, height: 40 }} />
-                            <Typography variant="subtitle2" fontWeight={600}>{record.user.name}</Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>{record.date}</TableCell>
-                        <TableCell>{record.checkIn || '--'}</TableCell>
-                        <TableCell>{record.checkOut || '--'}</TableCell>
-                        <TableCell>{getStatusChip(record.status)}</TableCell>
-                        <TableCell align="right">
-                          <Button size="small" variant="outlined" onClick={() => handleOpenEditModal(record)}>Edit</Button>
-                        </TableCell>
+            {isLoadingAttendance ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography>Loading attendance records...</Typography>
+              </Box>
+            ) : attendanceRecords.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography>No attendance records found</Typography>
+              </Box>
+            ) : (
+              <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                <TableContainer>
+                  <Table sx={{ minWidth: 750 }}>
+                    <TableHead sx={{ bgcolor: 'background.paper' }}>
+                      <TableRow>
+                        <TableCell>Employee</TableCell>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Check-in</TableCell>
+                        <TableCell>Check-out</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell align="right">Actions</TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Card>
+                    </TableHead>
+                    <TableBody>
+                      {attendanceRecords.map((record) => (
+                        <TableRow hover key={record.id}>
+                          <TableCell>
+                            <Stack direction="row" alignItems="center" spacing={2}>
+                              <Avatar src={record.user.avatar} sx={{ width: 40, height: 40 }} />
+                              <Typography variant="subtitle2" fontWeight={600}>{record.user.name}</Typography>
+                            </Stack>
+                          </TableCell>
+                          <TableCell>{record.date}</TableCell>
+                          <TableCell>{record.checkIn || '--'}</TableCell>
+                          <TableCell>{record.checkOut || '--'}</TableCell>
+                          <TableCell>{getStatusChip(record.status)}</TableCell>
+                          <TableCell align="right">
+                            <Button size="small" variant="outlined" onClick={() => handleOpenEditModal(record)}>Edit</Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Card>
+            )}
           </Box>
         )}
         {tab === 1 && (

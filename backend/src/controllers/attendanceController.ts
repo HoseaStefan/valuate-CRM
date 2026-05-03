@@ -314,3 +314,19 @@ export const getTodayAttendanceStatus = async (
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+export const getAllAttendance = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const records = await Attendance.findAll({
+      include: [{ model: User, attributes: ['fullName', 'photoPath'] }],
+      order: [['date', 'DESC']],
+    });
+
+    res.status(200).json({ records });
+    return;
+  } catch (error) {
+    console.error('Error fetching all attendance records:', error);
+    res.status(500).json({ message: 'Internal server error' });
+    return;
+  }
+};
