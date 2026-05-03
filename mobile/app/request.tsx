@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, FlatList, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, FlatList, ActivityIndicator, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
 import { useFocusEffect } from '@react-navigation/native';
 import { managerService } from '@/services/managerService';
+import { Image as ExpoImage } from 'expo-image';
+import { API_URL } from '@/services/apiClient';
 
 interface StaffRequest {
   id: string;
@@ -19,6 +21,7 @@ interface StaffRequest {
   startDate?: string;
   endDate?: string;
   reason: string;
+  proofImageUrl?: string | null;
   status: 'Pending' | 'Approved' | 'Rejected';
   requestDate: string;
 }
@@ -34,6 +37,8 @@ function RequestScreen() {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('Pending');
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [isManager, setIsManager] = useState(false);
+  const [proofModalVisible, setProofModalVisible] = useState(false);
+  const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
 
   // Check authentication
   useEffect(() => {
@@ -92,6 +97,13 @@ function RequestScreen() {
         requestDate: item.createdAt || item.startDate,
       }));
 
+      const resolveAssetUrl = (path?: string | null) => {
+        if (!path) return null;
+        if (path.startsWith('http')) return path;
+        const baseUrl = API_URL.replace(/\/api$/, '');
+        return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+      };
+
       const mappedReimburse: StaffRequest[] = reimburseRequests.map((item) => ({
         id: `reimburse-${item.id}`,
         staffName: item.user?.fullName || 'Staff',
@@ -100,6 +112,7 @@ function RequestScreen() {
         title: item.title,
         amount: Number(item.amount),
         reason: item.description || 'Reimbursement',
+        proofImageUrl: resolveAssetUrl(item.proofPath),
         status: item.status === 'approved' ? 'Approved' : item.status === 'rejected' ? 'Rejected' : 'Pending',
         requestDate: item.createdAt,
       }));
@@ -280,6 +293,19 @@ function RequestScreen() {
               <Text style={styles.detailValue}>{formatRequestDate(item.requestDate)}</Text>
             </View>
 
+            {(item.type === 'Reimburse' && item.proofImageUrl) && (
+              <TouchableOpacity
+                style={styles.proofButton}
+                onPress={() => {
+                  setProofImageUrl(item.proofImageUrl || null);
+                  setProofModalVisible(true);
+                }}
+              >
+                <IconSymbol name="doc.text.image" size={16} color="white" />
+                <Text style={styles.proofButtonText}>Lihat Bukti</Text>
+              </TouchableOpacity>
+            )}
+
             {item.status === 'Pending' && (
               <View style={styles.actionButtons}>
                 <TouchableOpacity 
@@ -376,6 +402,33 @@ function RequestScreen() {
           <Text style={styles.emptyStateText}>Belum ada request {selectedFilter.toLowerCase()}</Text>
         </View>
       )}
+
+      <Modal
+        visible={proofModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setProofModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {proofImageUrl ? (
+              <ExpoImage
+                source={{ uri: proofImageUrl }}
+                style={styles.proofImage}
+                contentFit="contain"
+              />
+            ) : (
+              <Text style={styles.modalEmptyText}>Bukti tidak tersedia</Text>
+            )}
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setProofModalVisible(false)}
+            >
+              <Text style={styles.modalCloseButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -510,6 +563,21 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 16,
   },
+  proofButton: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: ValuateColors.primary,
+  },
+  proofButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 12,
+  },
   actionButton: {
     flex: 1,
     flexDirection: 'row',
@@ -546,6 +614,42 @@ const styles = StyleSheet.create({
     color: ValuateColors.text.light,
     marginTop: 12,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: ValuateColors.cardBackground,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  proofImage: {
+    width: '100%',
+    height: 360,
+    borderRadius: 8,
+    backgroundColor: ValuateColors.background,
+  },
+  modalCloseButton: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: ValuateColors.primary,
+  },
+  modalCloseButtonText: {
+    color: ValuateColors.text.inverse,
+    fontWeight: '600',
+  },
+  modalEmptyText: {
+    color: ValuateColors.text.secondary,
+    fontSize: 13,
   },
 });
 

@@ -23,6 +23,7 @@ export type ReimbursementRequestApiItem = {
   title: string;
   description?: string | null;
   amount: string | number;
+  proofPath?: string | null;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
   user?: {
