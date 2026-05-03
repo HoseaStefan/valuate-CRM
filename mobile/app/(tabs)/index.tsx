@@ -68,6 +68,9 @@ function HomeScreen() {
         id: `leave-${item.id}`,
         title: 'Pengajuan Cuti',
         subtitle: `${item.startDate.toLocaleDateString('id-ID')} - ${item.endDate.toLocaleDateString('id-ID')}`,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        createdAt: item.createdAt,
         status: item.status,
         type: 'leave',
         color: item.status === 'Disetujui' ? 'success' : item.status === 'Ditolak' ? 'error' : 'warning',
@@ -77,6 +80,8 @@ function HomeScreen() {
         id: `reimburse-${item.id}`,
         title: `Reimburse ${item.title || 'Lainnya'}`,
         subtitle: `Rp ${item.amount.toLocaleString('id-ID')}`,
+        amount: item.amount,
+        submittedAt: item.submittedAt,
         status: item.status,
         type: 'reimburse',
         color: item.status === 'Disetujui' ? 'success' : item.status === 'Ditolak' ? 'error' : 'warning',
@@ -259,7 +264,40 @@ function HomeScreen() {
           <Text style={styles.sectionTitle}>Aktivitas Terbaru</Text>
           {item.data.length > 0 ? (
             item.data.map((activity: any) => (
-              <TouchableOpacity key={activity.id} style={styles.activityItem}>
+              <TouchableOpacity
+                key={activity.id}
+                style={styles.activityItem}
+                onPress={() => {
+                  if (activity.type === 'leave') {
+                    router.push({
+                      pathname: '/leave-detail',
+                      params: {
+                        id: String(activity.id).replace('leave-', ''),
+                        title: 'Pengajuan Cuti',
+                        subtitle: 'Cuti',
+                        status: activity.status,
+                        startDate: activity.startDate?.toISOString?.() || '',
+                        endDate: activity.endDate?.toISOString?.() || '',
+                        createdAt: activity.createdAt?.toISOString?.() || '',
+                      },
+                    });
+                  }
+
+                  if (activity.type === 'reimburse') {
+                    router.push({
+                      pathname: '/reimburse-detail',
+                      params: {
+                        id: String(activity.id).replace('reimburse-', ''),
+                        title: activity.title?.replace(/^Reimburse\s+/i, '') || 'Reimbursement',
+                        subtitle: 'Reimbursement',
+                        amount: String(activity.amount ?? ''),
+                        status: activity.status,
+                        submittedAt: activity.submittedAt?.toISOString?.() || '',
+                      },
+                    });
+                  }
+                }}
+              >
                 <View style={[styles.activityIcon, { backgroundColor: activity.color + '20' }]}>
                   <IconSymbol name={getMenuIcon(activity.type)} size={24} color={activity.color} />
                 </View>

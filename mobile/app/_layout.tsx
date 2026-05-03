@@ -45,10 +45,12 @@ function RootLayoutNav() {
         <Stack.Screen name="reimburse" options={{ headerShown: false }} />
         <Stack.Screen name="reimburse-form" options={{ headerShown: false }} />
         <Stack.Screen name="leave" options={{ headerShown: false }} />
+        <Stack.Screen name="leave-detail" options={{ headerShown: false }} />
         <Stack.Screen name="leave-form" options={{ headerShown: false }} />
         <Stack.Screen name="leave-calendar" options={{ headerShown: false }} />
         <Stack.Screen name="payroll" options={{ headerShown: false }} />
         <Stack.Screen name="request" options={{ headerShown: false }} />
+        <Stack.Screen name="reimburse-detail" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
       <StatusBar style="auto" />

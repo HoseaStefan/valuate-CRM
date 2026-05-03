@@ -88,7 +88,17 @@ function ReimburseScreen() {
                 <TouchableOpacity
                   key={item.id}
                   style={styles.row}
-                  onPress={() => Alert.alert('Detail', 'Mock: detail reimbursement belum dibuat.')}
+                  onPress={() => router.push({
+                    pathname: '/reimburse-detail',
+                    params: {
+                      id: item.id,
+                      title: item.title,
+                      subtitle: item.subtitle,
+                      amount: String(item.amount),
+                      status: item.status,
+                      submittedAt: item.submittedAt.toISOString(),
+                    },
+                  })}
                 >
                   <View style={styles.rowLeft}>
                     <View style={styles.rowTitleLine}>

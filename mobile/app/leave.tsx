@@ -88,7 +88,18 @@ function LeaveScreen() {
                 <TouchableOpacity
                   key={item.id}
                   style={styles.row}
-                  onPress={() => Alert.alert('Detail', 'Mock: detail cuti belum dibuat.')}
+                  onPress={() => router.push({
+                    pathname: '/leave-detail',
+                    params: {
+                      id: item.id,
+                      title: item.title,
+                      subtitle: item.subtitle,
+                      status: item.status,
+                      startDate: item.startDate.toISOString(),
+                      endDate: item.endDate.toISOString(),
+                      createdAt: item.createdAt.toISOString(),
+                    },
+                  })}
                 >
                   <View style={styles.rowLeft}>
                     <View style={styles.rowTitleLine}>
