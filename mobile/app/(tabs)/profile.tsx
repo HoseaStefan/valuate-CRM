@@ -9,7 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Image as ExpoImage } from 'expo-image';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
 import * as ImagePicker from 'expo-image-picker';
-import { profileService } from '@/services/profileService';
+import { profileService, UpdateProfileResponse } from '@/services/profileService';
+import { API_URL } from '@/services/apiClient';
 
 function ProfileScreen() {
   const [showChangePasswordModal, setShowChangePasswordModal] = React.useState(false);
@@ -42,6 +43,8 @@ function ProfileScreen() {
     setAddress(user?.address || detailedUser?.address || '');
     setPendingPhotoUri(profileImageUrl || null);
   }, [editingProfile, detailedUser, user, profileImageUrl]);
+
+  const displayPhotoUri = editingProfile && pendingPhotoUri ? pendingPhotoUri : profileImageUrl;
 
 
   const { logout } = useAuth();
@@ -119,6 +122,13 @@ function ProfileScreen() {
     }
   };
 
+  const resolvePhotoUrl = (path: string | null | undefined) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = API_URL.replace(/\/api$/, '');
+    return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
+  };
+
   const handleSaveProfile = async () => {
     if (savingProfile) return;
 
@@ -155,11 +165,18 @@ function ProfileScreen() {
         formData.append('photoPath', pendingPhotoUri);
       }
 
-      await profileService.updateProfile(formData);
-      updateUserProfile(payload);
+      const updatedUser: UpdateProfileResponse = await profileService.updateProfile(formData);
+      const resolvedPhotoPath = resolvePhotoUrl(updatedUser?.photoPath) || pendingPhotoUri || null;
 
-      if (pendingPhotoUri) {
-        updateProfileImage(pendingPhotoUri);
+      updateUserProfile({
+        fullName: updatedUser?.fullName || payload.fullName,
+        phoneNumber: updatedUser?.phoneNumber || payload.phoneNumber,
+        address: updatedUser?.address || payload.address,
+        photoPath: resolvedPhotoPath,
+      });
+
+      if (resolvedPhotoPath) {
+        updateProfileImage(resolvedPhotoPath);
       }
 
       setEditingProfile(false);
@@ -217,13 +234,15 @@ function ProfileScreen() {
           </TouchableOpacity>
           <View style={styles.profileHeader}>
             <View style={styles.avatarContainer}>
-              {profileImageUrl ? (
+              {displayPhotoUri ? (
                 <ExpoImage
-                  source={{ uri: profileImageUrl }}
+                  source={{ uri: displayPhotoUri }}
                   style={styles.profileImage}
                   onError={() => {
                     console.log('Failed to load profile image');
-                    updateProfileImage('');
+                    if (!editingProfile) {
+                      updateProfileImage('');
+                    }
                   }}
                 />
               ) : (

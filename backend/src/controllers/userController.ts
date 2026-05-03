@@ -219,7 +219,7 @@ export const deleteUser = async (
 // ===== VIEW MANAGEMENT TREE =====
 
 interface UserNode {
-  id: number;
+  id: string;
   fullName: string;
   email: string;
   role: string;
@@ -236,7 +236,7 @@ export const getManagementTree = async (
       attributes: ['id', 'email', 'fullName', 'role', 'photoPath', 'managerId'],
     });
 
-    const userMap = new Map<number, UserNode>();
+    const userMap = new Map<string, UserNode>();
     const tree: UserNode[] = [];
 
     // Initialize map

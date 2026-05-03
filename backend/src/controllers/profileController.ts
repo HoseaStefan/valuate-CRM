@@ -14,7 +14,7 @@ export const updateSelfProfile = async (
       return;
     }
 
-    const { phoneNumber, address } = req.body;
+    const { fullName, phoneNumber, address } = req.body;
     let photoPath = req.body.photoPath; // Might still receive a string if no new photo uploaded
 
     if (req.file) {
@@ -27,6 +27,7 @@ export const updateSelfProfile = async (
       return;
     }
 
+    if (fullName) user.fullName = fullName;
     if (phoneNumber) user.phoneNumber = phoneNumber;
     if (address) user.address = address;
     if (photoPath !== undefined && photoPath !== null) user.photoPath = photoPath;
