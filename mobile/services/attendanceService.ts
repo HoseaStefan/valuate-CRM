@@ -51,4 +51,22 @@ export const attendanceService = {
       checkOut: item.clockOut,
     }));
   },
+
+  async scanQr(qrPayload: string) {
+    return fetchJson<{ valid: boolean; action?: 'clockIn' | 'clockOut'; message?: string }>(
+      '/attendance/scan',
+      {
+        method: 'POST',
+        body: JSON.stringify({ qr: qrPayload }),
+      },
+    );
+  },
+
+  async getTodayStatus() {
+    return fetchJson<{
+      hasRecord: boolean;
+      hasClockOut?: boolean;
+      record?: { clockIn?: string; clockOut?: string };
+    }>('/attendance/today-status');
+  },
 };

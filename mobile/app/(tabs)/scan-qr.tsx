@@ -2,27 +2,68 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useRouter } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ValuateColors } from '@/constants/theme';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
+import { attendanceService } from '@/services/attendanceService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 function ScanQRScreen() {
+  const router = useRouter();
   const [flashEnabled, setFlashEnabled] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
 
-  const handleBarCodeScanned = ({ data }: { data: string }) => {
+  const handleBarCodeScanned = async ({ data }: { data: string }) => {
     if (scanned) return;
     setScanned(true);
 
-    Alert.alert('QR Scanned', data, [
-      {
-        text: 'OK',
-        onPress: () => setScanned(false),
-      },
-    ]);
+    try {
+      const status = await attendanceService.getTodayStatus();
+      const shouldClockOut = status.hasRecord && !status.hasClockOut;
+
+      const confirmTitle = shouldClockOut ? 'Konfirmasi Clock Out' : 'Konfirmasi Clock In';
+      const confirmMessage = shouldClockOut
+        ? 'Konfirmasi clock out hari ini?'
+        : 'Konfirmasi clock in hari ini?';
+
+      Alert.alert(confirmTitle, confirmMessage, [
+        { text: 'Batal', style: 'cancel', onPress: () => setScanned(false) },
+        {
+          text: 'Konfirmasi',
+          onPress: async () => {
+            try {
+              const result = await attendanceService.scanQr(data);
+              if (!result.valid) {
+                Alert.alert('QR Tidak Valid', result.message || 'QR tidak valid', [
+                  { text: 'OK', onPress: () => setScanned(false) },
+                ]);
+                return;
+              }
+
+              const actionLabel = result.action === 'clockOut' ? 'Clock Out' : 'Clock In';
+              Alert.alert('Berhasil', result.message || `Absensi ${actionLabel} berhasil`, [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    setScanned(false);
+                    router.replace('/attendance');
+                  },
+                },
+              ]);
+            } catch (error) {
+              const msg = error instanceof Error ? error.message : 'Gagal memproses QR';
+              Alert.alert('Error', msg, [{ text: 'OK', onPress: () => setScanned(false) }]);
+            }
+          },
+        },
+      ]);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Gagal memproses QR';
+      Alert.alert('Error', msg, [{ text: 'OK', onPress: () => setScanned(false) }]);
+    }
   };
 
   const toggleFlash = () => {

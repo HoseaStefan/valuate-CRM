@@ -15,13 +15,9 @@ export const getAttendanceHistory = async (
     const requesterId = req.user?.id;
     const requesterRole = req.user?.role;
 
-    let targetUserId: number | undefined = undefined;
+    let targetUserId: string | undefined = undefined;
     if (userId) {
-      targetUserId = Number(userId);
-      if (isNaN(targetUserId)) {
-        res.status(400).json({ message: 'Invalid userId' });
-        return;
-      }
+      targetUserId = String(userId);
       if (requesterRole !== 'admin' && targetUserId !== requesterId) {
         res.status(403).json({ message: 'Forbidden' });
         return;
@@ -138,14 +134,14 @@ export const scanQR = async (
       try {
         parsed = JSON.parse(qr);
       } catch (e) {
-        // if it's not JSON, treat it as raw message (no signature)
-        parsed = { message: qr };
+        // Treat raw string as signature payload
+        parsed = { signature: qr };
       }
     }
 
     // Expect payload to include `signature` (base64). Determine action by checking
     // whether an attendance record for this user exists for today.
-    const signature: string | undefined = parsed?.signature || parsed?.sig;
+    const signature: string | undefined = parsed?.signature || parsed?.sig || parsed?.message;
 
     if (!signature) {
       res.status(400).json({ message: 'QR must contain signature' });
@@ -205,6 +201,40 @@ export const scanQR = async (
       });
   } catch (error) {
     console.error('Error scanning QR:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get today's attendance status for authenticated user
+export const getTodayAttendanceStatus = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const dateString = new Date().toISOString().slice(0, 10);
+    const record = await Attendance.findOne({
+      where: { userId, date: dateString },
+    });
+
+    if (!record) {
+      res.status(200).json({ hasRecord: false });
+      return;
+    }
+
+    const hasClockOut = record.clockOut !== '00:00:00';
+    res.status(200).json({
+      hasRecord: true,
+      hasClockOut,
+      record,
+    });
+  } catch (error) {
+    console.error('Error checking today attendance status:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
