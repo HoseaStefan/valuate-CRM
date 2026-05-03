@@ -5,6 +5,66 @@ import { Attendance } from '../models/attendances';
 import { User } from '../models/users';
 import { AuthRequest } from '../middleware/authMiddleware';
 
+const getLocalTimeParts = (date: Date, timeZone: string) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date);
+  const weekday = parts.find((p) => p.type === 'weekday')?.value;
+  const hour = parts.find((p) => p.type === 'hour')?.value;
+  const minute = parts.find((p) => p.type === 'minute')?.value;
+
+  return {
+    weekday,
+    hour: hour ? Number(hour) : null,
+    minute: minute ? Number(minute) : null,
+  };
+};
+
+const getEnvValue = (key: string): string | undefined => {
+  if (process.env[key]) return process.env[key];
+  const match = Object.entries(process.env).find(
+    ([envKey]) => envKey.trim() === key,
+  );
+  return match ? match[1] : undefined;
+};
+
+const getCheckInMinutes = (date: Date): number | null => {
+  const timeZone = process.env.APP_TIMEZONE || 'Asia/Jakarta';
+  const { weekday } = getLocalTimeParts(date, timeZone);
+  const map: Record<string, string> = {
+    Mon: 'MONDAY',
+    Tue: 'TUESDAY',
+    Wed: 'WEDNESDAY',
+    Thu: 'THURSDAY',
+    Fri: 'FRIDAY',
+    Sat: 'SATURDAY',
+    Sun: 'SUNDAY',
+  };
+
+  if (!weekday) return null;
+  const key = map[weekday];
+  if (!key) return null;
+  const raw = getEnvValue(key);
+  if (!raw) return null;
+  const value = Number(raw);
+  return Number.isNaN(value) ? null : value;
+};
+
+const isLateCheckIn = (date: Date): boolean => {
+  const timeZone = process.env.APP_TIMEZONE || 'Asia/Jakarta';
+  const checkInMinutes = getCheckInMinutes(date);
+  if (checkInMinutes === null) return false;
+  const { hour, minute } = getLocalTimeParts(date, timeZone);
+  if (hour === null || minute === null) return false;
+  const minutesNow = hour * 60 + minute;
+  return minutesNow > checkInMinutes + 15;
+};
+
 // Get attendance history. If userId omitted, returns requester's records (unless admin sets userId)
 export const getAttendanceHistory = async (
   req: AuthRequest,
@@ -15,13 +75,9 @@ export const getAttendanceHistory = async (
     const requesterId = req.user?.id;
     const requesterRole = req.user?.role;
 
-    let targetUserId: number | undefined = undefined;
+    let targetUserId: string | undefined = undefined;
     if (userId) {
-      targetUserId = Number(userId);
-      if (isNaN(targetUserId)) {
-        res.status(400).json({ message: 'Invalid userId' });
-        return;
-      }
+      targetUserId = String(userId);
       if (requesterRole !== 'admin' && targetUserId !== requesterId) {
         res.status(403).json({ message: 'Forbidden' });
         return;
@@ -138,14 +194,14 @@ export const scanQR = async (
       try {
         parsed = JSON.parse(qr);
       } catch (e) {
-        // if it's not JSON, treat it as raw message (no signature)
-        parsed = { message: qr };
+        // Treat raw string as signature payload
+        parsed = { signature: qr };
       }
     }
 
     // Expect payload to include `signature` (base64). Determine action by checking
     // whether an attendance record for this user exists for today.
-    const signature: string | undefined = parsed?.signature || parsed?.sig;
+    const signature: string | undefined = parsed?.signature || parsed?.sig || parsed?.message;
 
     if (!signature) {
       res.status(400).json({ message: 'QR must contain signature' });
@@ -175,12 +231,28 @@ export const scanQR = async (
 
     // No record => treat as clock_in
     if (!record) {
+      const timeZone = process.env.APP_TIMEZONE || 'Asia/Jakarta';
+      const checkInMinutes = getCheckInMinutes(now);
+      const localParts = getLocalTimeParts(now, timeZone);
+      const minutesNow = localParts.hour !== null && localParts.minute !== null
+        ? localParts.hour * 60 + localParts.minute
+        : null;
+      const status = isLateCheckIn(now) ? 'late' : 'present';
+      console.log('[Attendance] Late check debug', {
+        timeZone,
+        weekday: localParts.weekday,
+        hour: localParts.hour,
+        minute: localParts.minute,
+        minutesNow,
+        checkInMinutes,
+        late: status,
+      });
       record = await Attendance.create({
         userId,
         date: dateString,
         clockIn: timeString,
         clockOut: '00:00:00',
-        status: 'present',
+        status,
         notes: null,
       } as any);
 
@@ -205,6 +277,40 @@ export const scanQR = async (
       });
   } catch (error) {
     console.error('Error scanning QR:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get today's attendance status for authenticated user
+export const getTodayAttendanceStatus = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(403).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const dateString = new Date().toISOString().slice(0, 10);
+    const record = await Attendance.findOne({
+      where: { userId, date: dateString },
+    });
+
+    if (!record) {
+      res.status(200).json({ hasRecord: false });
+      return;
+    }
+
+    const hasClockOut = record.clockOut !== '00:00:00';
+    res.status(200).json({
+      hasRecord: true,
+      hasClockOut,
+      record,
+    });
+  } catch (error) {
+    console.error('Error checking today attendance status:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
