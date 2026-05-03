@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { ChevronRight as ChevronRightIcon, ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import DashboardLayout from '../component/DashboardLayout';
+import { useAuth } from "../context/AuthContext";
 
 interface User {
     id: number;
@@ -18,17 +19,41 @@ interface User {
     avatar: string;
 }
 
-// Mock data pengguna dengan relasi manager
-const mockUsers: User[] = [
-    { id: 1, name: 'John Doe', role: 'Manager', managerId: null, avatar: '/avatars/avatar-1.png' },
-    { id: 2, name: 'Jane Smith', role: 'Manager', managerId: 1, avatar: '/avatars/avatar-2.png' },
-    { id: 3, name: 'Peter Jones', role: 'Manager', managerId: 1, avatar: '/avatars/avatar-3.png' },
-    { id: 4, name: 'Sarah Miller', role: 'Staff', managerId: 2, avatar: '/avatars/avatar-4.png' },
-    { id: 5, name: 'Mike Brown', role: 'Staff', managerId: 2, avatar: '/avatars/avatar-5.png' },
-    { id: 6, name: 'Linda Davis', role: 'Staff', managerId: 3, avatar: '/avatars/avatar-6.png' },
-    { id: 7, name: 'Chris Wilson', role: 'Manager', managerId: 3, avatar: '/avatars/avatar-7.png' },
-    { id: 8, name: 'Emily White', role: 'Staff', managerId: 7, avatar: '/avatars/avatar-8.png' },
-];
+// // Mock data pengguna dengan relasi manager
+// const mockUsers: User[] = [
+//     { id: 9, name: 'John Doe', role: 'Manager', managerId: null, avatar: '/avatars/avatar-1.png' },
+//     { id: 1, name: 'John Doe', role: 'Manager', managerId: null, avatar: '/avatars/avatar-1.png' },
+//     { id: 2, name: 'Jane Smith', role: 'Manager', managerId: 1, avatar: '/avatars/avatar-2.png' },
+//     { id: 3, name: 'Peter Jones', role: 'Manager', managerId: 1, avatar: '/avatars/avatar-3.png' },
+//     { id: 4, name: 'Sarah Miller', role: 'Staff', managerId: 2, avatar: '/avatars/avatar-4.png' },
+//     { id: 5, name: 'Mike Brown', role: 'Staff', managerId: 2, avatar: '/avatars/avatar-5.png' },
+//     { id: 6, name: 'Linda Davis', role: 'Staff', managerId: 3, avatar: '/avatars/avatar-6.png' },
+//     { id: 7, name: 'Chris Wilson', role: 'Manager', managerId: 3, avatar: '/avatars/avatar-7.png' },
+//     { id: 8, name: 'Emily White', role: 'Staff', managerId: 7, avatar: '/avatars/avatar-8.png' },
+// ];
+
+const getUser = async (token?: string): Promise<User[]> => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch('http://localhost:3000/api/users/tree', {
+        method: 'GET',
+        headers,
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch user tree');
+    }
+    
+    const data = await response.json();
+
+    return data.map((u: any) => ({
+        id: u.id,
+        name: u.fullName || u.name || u.email,
+        role: u.role,
+        managerId: u.managerId || null,
+        avatar: u.photoPath ? (u.photoPath.startsWith('/') ? `http://localhost:3000${u.photoPath}` : u.photoPath) : null,
+    }));
+}
 
 interface UserNodeProps {
     user: User;
@@ -86,16 +111,27 @@ const UserNode: React.FC<UserNodeProps> = ({ user, allUsers, level, onToggle, ex
 export default function UserTree() {
     const [users, setUsers] = useState<User[]>([]);
     const [expandedNodes, setExpandedNodes] = useState<Record<number, boolean>>({});
+    const { token } = useAuth();
 
     useEffect(() => {
-        // Di aplikasi nyata, Anda akan mengambil data ini dari API
-        setUsers(mockUsers);
-        // Buka level teratas secara default
-        const topLevelUser = mockUsers.find(u => u.managerId === null);
-        if (topLevelUser) {
-            setExpandedNodes({ [topLevelUser.id]: true });
-        }
-    }, []);
+        // Only fetch when a token exists to avoid initial unauthorized requests
+        if (!token) return;
+
+        (async () => {
+            try {
+                const fetched = await getUser(token);
+                setUsers(fetched);
+
+                // open top-level node from fetched data
+                const topLevelUser = fetched.find(u => u.managerId === null);
+                if (topLevelUser) {
+                    setExpandedNodes({ [topLevelUser.id]: true });
+                }
+            } catch (err) {
+                console.error('Failed to fetch user tree', err);
+            }
+        })();
+    }, [token]);
 
     const handleToggleNode = (userId: number) => {
         setExpandedNodes(prev => ({ ...prev, [userId]: !prev[userId] }));
