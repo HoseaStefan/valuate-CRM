@@ -235,7 +235,7 @@ function RequestScreen() {
           <View style={styles.requestInfo}>
             <Text style={styles.staffName}>{item.staffName}</Text>
             <Text style={styles.requestTitle}>{item.title}</Text>
-            <Text style={styles.staffID}>{item.staffID}</Text>
+            {/* <Text style={styles.staffID}>{item.staffID}</Text> */}
           </View>
           
           <View style={styles.requestRight}>
