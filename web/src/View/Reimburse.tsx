@@ -26,15 +26,15 @@ const Reimburse = () => {
   const [myHistory, setMyHistory] = useState<any[]>([]);
   
   // Using simple role check for demo (could come from AuthContext)
-  const userRoleStr = localStorage.getItem('user_data');
+  const userRoleStr = localStorage.getItem('userData');
   const userRole = userRoleStr ? JSON.parse(userRoleStr).role : 'staff';
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('token');
 
   const fetchMyHistory = async () => {
     try {
-      const data = await fetchEndpoint('/api/reimbursement/history', 'GET', token);
-      if (data && data.data) {
-        setMyHistory(data.data);
+      const response = await fetchEndpoint('/api/reimbursement/history', 'GET', token);
+      if (response && response.data) {
+        setMyHistory(response.data);
       }
     } catch (error) {
       console.error("Error fetching my history", error);
@@ -44,9 +44,9 @@ const Reimburse = () => {
   const fetchAllRequests = async () => {
     if (userRole === 'admin' || userRole === 'staff') { // Manager is staff too
       try {
-        const data = await fetchEndpoint('/api/reimbursement/requests', 'GET', token);
-        if (data && data.data) {
-          setReimburseRequests(data.data);
+        const response = await fetchEndpoint('/api/reimbursement/requests', 'GET', token);
+        if (response && response.data) {
+          setReimburseRequests(response);
         }
       } catch (error) {
         console.error("Error fetching all requests", error);
@@ -144,8 +144,8 @@ const Reimburse = () => {
                         <TableCell>{formatCurrency(request.amount)}</TableCell>
                         <TableCell>{request.description}</TableCell>
                         <TableCell>
-                          {request.proofUrl ? (
-                            <Link href={`http://localhost:3000${request.proofUrl}`} target="_blank" rel="noopener">View</Link>
+                          {request.proofPath ? (
+                            <Link href={`http://localhost:3000${request.proofPath}`} target="_blank" rel="noopener">View</Link>
                           ) : 'No Proof'}
                         </TableCell>
                         <TableCell>
@@ -202,8 +202,8 @@ const Reimburse = () => {
                         <TableCell>{formatCurrency(request.amount)}</TableCell>
                         <TableCell>{request.description}</TableCell>
                         <TableCell>
-                          {request.proofUrl ? (
-                            <Link href={`http://localhost:3000${request.proofUrl}`} target="_blank" rel="noopener">View</Link>
+                          {request.proofPath ? (
+                            <Link href={`http://localhost:3000${request.proofPath}`} target="_blank" rel="noopener">View</Link>
                           ) : 'No Proof'}
                         </TableCell>
                         <TableCell>

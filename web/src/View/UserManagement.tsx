@@ -54,7 +54,7 @@ export default function UserManagement() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedUserId, setSelectedUserId] = useState<null | string>(null);
   const [order, setOrder] = useState<Order>('asc');
-  const [orderBy, setOrderBy] = useState<string>('name');
+  const [orderBy, setOrderBy] = useState<keyof User>('name');
   const [loading, setLoading] = useState(true);
   const [usersMap, setUsersMap] = useState<Map<string, User>>(new Map());
 
@@ -86,12 +86,12 @@ export default function UserManagement() {
         });
         
         // Build user map for manager name lookup
-        transformedUsers.forEach(user => {
+        transformedUsers.forEach((user: User) => {
           userMapTemp.set(user.id, user);
         });
         
         // Now populate manager names
-        const finalUsers = transformedUsers.map(user => ({
+        const finalUsers = transformedUsers.map((user: User) => ({
           ...user,
           manager: user.managerId ? (userMapTemp.get(user.managerId)?.name || 'Unknown') : '-',
         }));
@@ -177,7 +177,7 @@ export default function UserManagement() {
     setUserList(prev => [...prev, transformedUser]);
   };
 
-  const handleSort = (property: keyof (typeof users)[0]) => {
+  const handleSort = (property: keyof User) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
