@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { fetchJson } from './apiClient';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.18.20:3000';
 const API_URL = `${API_BASE_URL}/api`;
@@ -147,6 +148,22 @@ export const authService = {
       return { success: true, message: response.data.message };
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || 'Failed to reset password';
+      return { success: false, message: errorMessage };
+    }
+  },
+
+  /**
+   * Change password for authenticated user
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetchJson<{ message: string }>('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      return { success: true, message: response?.message || 'Password changed successfully' };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to change password';
       return { success: false, message: errorMessage };
     }
   },

@@ -101,8 +101,8 @@ export const changePassword = async (req: AuthRequest, res: Response): Promise<v
             return;
         }
 
-        if (typeof newPassword !== 'string' || newPassword.length < 8) {
-            res.status(400).json({ message: 'New password must be at least 8 characters' });
+        if (typeof newPassword !== 'string' || newPassword.length < 6) {
+          res.status(400).json({ message: 'New password must be at least 6 characters' });
             return;
         }
 

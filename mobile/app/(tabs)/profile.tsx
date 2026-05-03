@@ -6,6 +6,7 @@ import { ValuateColors } from '@/constants/theme';
 import { router } from 'expo-router';
 import { useUserContext } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/authService';
 import { Image as ExpoImage } from 'expo-image';
 import { withProtectedRoute } from '@/components/ProtectedRoute';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,9 +15,11 @@ import { API_URL } from '@/services/apiClient';
 
 function ProfileScreen() {
   const [showChangePasswordModal, setShowChangePasswordModal] = React.useState(false);
+  const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
   const [changingPassword, setChangingPassword] = React.useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = React.useState(false);
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
  
@@ -73,6 +76,7 @@ function ProfileScreen() {
   };
 
   const handleOpenChangePassword = () => {
+    setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
     setShowChangePasswordModal(true);
@@ -193,8 +197,13 @@ function ProfileScreen() {
     if (changingPassword) return;
 
     // Basic validation
-    if (!newPassword || newPassword.length < 4) {
-      Alert.alert('Error', 'Password minimal 4 karakter');
+    if (!currentPassword || currentPassword.length < 4) {
+      Alert.alert('Error', 'Password saat ini wajib diisi');
+      return;
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      Alert.alert('Error', 'Password minimal 6 karakter');
       return;
     }
 
@@ -205,10 +214,12 @@ function ProfileScreen() {
 
     try {
       setChangingPassword(true);
-
-      // Frontend-only mock: no backend integration yet
-      await new Promise(resolve => setTimeout(resolve, 250));
-      Alert.alert('Berhasil', 'Password berhasil diubah (mock)');
+      const result = await authService.changePassword(currentPassword, newPassword);
+      if (!result.success) {
+        Alert.alert('Error', result.message);
+        return;
+      }
+      Alert.alert('Berhasil', result.message);
       setShowChangePasswordModal(false);
     } catch (error) {
       console.error('Error changing password:', error);
@@ -357,6 +368,27 @@ function ProfileScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Ganti Password</Text>
+            <View style={styles.inputContainer}>
+              <TextInput
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder="Password saat ini"
+                secureTextEntry={!showCurrentPassword}
+                style={styles.inputWithIcon}
+                editable={!changingPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                disabled={changingPassword}
+              >
+                <IconSymbol
+                  name={showCurrentPassword ? "eye.slash" : "eye"}
+                  size={20}
+                  color={ValuateColors.text.light}
+                />
+              </TouchableOpacity>
+            </View>
             <View style={styles.inputContainer}>
               <TextInput
                 value={newPassword}

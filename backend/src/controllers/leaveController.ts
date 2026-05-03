@@ -379,7 +379,7 @@ export const getLeaveRequests = async (
 
     const { status } = req.query as any;
 
-    let targetUserIds: number[] = [];
+    let targetUserIds: string[] = [];
 
     if (reviewerRole !== 'admin') {
       const directSubs = await User.findAll({
